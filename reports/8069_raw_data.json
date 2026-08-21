@@ -1243,8 +1243,8 @@
   }
  },
  "metadata": {
-  "fetched_at": "2026-08-21T14:12:59+08:00",
-  "source": "Goodinfo.tw",
+  "fetched_at": "2026-08-21T22:18:50+08:00",
+  "source": "FinMind (metrics rebuilt, Goodinfo quarterly blocked)",
   "source_urls": {
    "income_statement": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=IS_YEAR&STOCK_ID=8069",
    "balance_sheet": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=BS_YEAR&STOCK_ID=8069",
@@ -1257,10 +1257,271 @@
    "2024",
    "2023"
   ],
-  "currency": "TWD 億元"
+  "currency": "TWD 億元",
+  "supplement_source": {
+   "quarterly": "FinMind TaiwanStockFinancialStatements",
+   "monthly": "FinMind TaiwanStockMonthRevenue"
+  }
  },
  "verification": {
   "sanity": [],
   "sanity_pass": true
- }
+ },
+ "quarterly": [
+  {
+   "date": "2024-09-30",
+   "label": "2024Q3",
+   "revenue": 9189190000.0,
+   "gross_profit": 4448407000.0,
+   "net_income": 1999003000.0,
+   "eps": 1.75,
+   "gross_margin": 48.409130728606115,
+   "net_margin": 21.753854257012858,
+   "qoq": null
+  },
+  {
+   "date": "2024-12-31",
+   "label": "2024Q4",
+   "revenue": 9675269000.0,
+   "gross_profit": 5200014000.0,
+   "net_income": 3551907000.0,
+   "eps": 3.08,
+   "gross_margin": 53.74542041156685,
+   "net_margin": 36.71119635019967,
+   "qoq": 5.289682768557413
+  },
+  {
+   "date": "2025-03-31",
+   "label": "2025Q1",
+   "revenue": 8059437000.0,
+   "gross_profit": 4207684000.0,
+   "net_income": 2196959000.0,
+   "eps": 1.91,
+   "gross_margin": 52.208162927509704,
+   "net_margin": 27.25945993498057,
+   "qoq": -16.700641604900078
+  },
+  {
+   "date": "2025-06-30",
+   "label": "2025Q2",
+   "revenue": 10625522000.0,
+   "gross_profit": 6405895000.0,
+   "net_income": 2960790000.0,
+   "eps": 2.58,
+   "gross_margin": 60.287814565722044,
+   "net_margin": 27.86488983788279,
+   "qoq": 31.83950690352193
+  },
+  {
+   "date": "2025-09-30",
+   "label": "2025Q3",
+   "revenue": 10415096000.0,
+   "gross_profit": 5829606000.0,
+   "net_income": 4237533000.0,
+   "eps": 3.67,
+   "gross_margin": 55.97265738117056,
+   "net_margin": 40.686451665928,
+   "qoq": -1.9803827049626355
+  },
+  {
+   "date": "2025-12-31",
+   "label": "2025Q4",
+   "revenue": 7015759000.0,
+   "gross_profit": 3390130000.0,
+   "net_income": 1110842000.0,
+   "eps": 0.97,
+   "gross_margin": 48.32164274742048,
+   "net_margin": 15.833525638494708,
+   "qoq": -32.638556572114176
+  },
+  {
+   "date": "2026-03-31",
+   "label": "2026Q1",
+   "revenue": 8633490000.0,
+   "gross_profit": 5150256000.0,
+   "net_income": 2795198000.0,
+   "eps": 2.41,
+   "gross_margin": 59.654392372030316,
+   "net_margin": 32.37622328861214,
+   "qoq": 23.05853151455175
+  },
+  {
+   "date": "2026-06-30",
+   "label": "2026Q2",
+   "revenue": 10216093000.0,
+   "gross_profit": 5999392000.0,
+   "net_income": 3758264000.0,
+   "eps": 3.23,
+   "gross_margin": 58.72491567960472,
+   "net_margin": 36.78768390225108,
+   "qoq": 18.330976233249817
+  }
+ ],
+ "monthly": [
+  {
+   "date": "2025-09",
+   "revenue": 33.36337,
+   "mom": null
+  },
+  {
+   "date": "2025-10",
+   "revenue": 31.82465,
+   "mom": -4.6120041230847
+  },
+  {
+   "date": "2025-11",
+   "revenue": 21.48543,
+   "mom": -32.48808706458672
+  },
+  {
+   "date": "2025-12",
+   "revenue": 22.93169,
+   "mom": 6.7313523629734195
+  },
+  {
+   "date": "2026-01",
+   "revenue": 25.74047,
+   "mom": 12.248464897266608
+  },
+  {
+   "date": "2026-02",
+   "revenue": 27.80203,
+   "mom": 8.00902236827843
+  },
+  {
+   "date": "2026-03",
+   "revenue": 26.03601,
+   "mom": -6.352126085757037
+  },
+  {
+   "date": "2026-04",
+   "revenue": 32.49686,
+   "mom": 24.815054226818912
+  },
+  {
+   "date": "2026-05",
+   "revenue": 28.94681,
+   "mom": -10.92428622334588
+  },
+  {
+   "date": "2026-06",
+   "revenue": 32.80358,
+   "mom": 13.323644297938175
+  },
+  {
+   "date": "2026-07",
+   "revenue": 40.41054,
+   "mom": 23.189420179138985
+  },
+  {
+   "date": "2026-08",
+   "revenue": 28.76431,
+   "mom": -28.81978315558268
+  }
+ ],
+ "metrics": {
+  "2023": {
+   "revenue": 271.19755,
+   "gross_profit": 144.5648,
+   "sell_exp": null,
+   "admin_exp": null,
+   "rd_exp": null,
+   "op_income": 72.85477,
+   "net_income": 78.66226,
+   "eps": 6.85,
+   "cash": 96.87937,
+   "inventory": 28.5165,
+   "current_assets": 265.1569,
+   "current_liabilities": 170.33843,
+   "total_assets": 744.56233,
+   "total_liabilities": 249.07761,
+   "equity": 495.48472,
+   "op_cf": null,
+   "inv_cf": null,
+   "fin_cf": null,
+   "capex": null,
+   "dividend": 4.48964444,
+   "gross_margin": 53.30608628285912,
+   "op_margin": 26.86409593302005,
+   "net_margin": 29.005520145738785,
+   "current_ratio": 155.6647551583046,
+   "debt_ratio": 33.452889028108636,
+   "roe": 15.87581954091339,
+   "roa": 10.56489924758885,
+   "fcf": null,
+   "sell_ratio": null,
+   "admin_ratio": null,
+   "rd_ratio": null,
+   "total_opex_ratio": null
+  },
+  "2024": {
+   "revenue": 321.63133,
+   "gross_profit": 159.64672,
+   "sell_exp": null,
+   "admin_exp": null,
+   "rd_exp": null,
+   "op_income": 76.18784,
+   "net_income": 89.22463,
+   "eps": 7.75,
+   "cash": 132.06169,
+   "inventory": 35.21775,
+   "current_assets": 339.03543,
+   "current_liabilities": 228.58406,
+   "total_assets": 911.51744,
+   "total_liabilities": 334.09913,
+   "equity": 577.41831,
+   "op_cf": null,
+   "inv_cf": null,
+   "fin_cf": null,
+   "capex": null,
+   "dividend": 4.9901393,
+   "gross_margin": 49.636557483377004,
+   "op_margin": 23.68794109703181,
+   "net_margin": 27.74127445855477,
+   "current_ratio": 148.31980410182584,
+   "debt_ratio": 36.653070510642124,
+   "roe": 15.45233818442647,
+   "roa": 9.78858177414576,
+   "fcf": null,
+   "sell_ratio": null,
+   "admin_ratio": null,
+   "rd_ratio": null,
+   "total_opex_ratio": null
+  },
+  "2025": {
+   "revenue": 361.15814,
+   "gross_profit": 198.33315,
+   "sell_exp": null,
+   "admin_exp": null,
+   "rd_exp": null,
+   "op_income": 106.7431,
+   "net_income": 105.06124,
+   "eps": 9.13,
+   "cash": 188.11235,
+   "inventory": 38.77695,
+   "current_assets": 331.89321,
+   "current_liabilities": 199.07402,
+   "total_assets": 1072.45167,
+   "total_liabilities": 373.3469,
+   "equity": 699.10477,
+   "op_cf": null,
+   "inv_cf": null,
+   "fin_cf": null,
+   "capex": null,
+   "dividend": 5.88820682,
+   "gross_margin": 54.91587424832789,
+   "op_margin": 29.555778529593713,
+   "net_margin": 29.09009333141432,
+   "current_ratio": 166.71849495981445,
+   "debt_ratio": 34.812468518977646,
+   "roe": 15.027967839498505,
+   "roa": 9.796361266331004,
+   "fcf": null,
+   "sell_ratio": null,
+   "admin_ratio": null,
+   "rd_ratio": null,
+   "total_opex_ratio": null
+  }
+ },
+ "company": "元太"
 }

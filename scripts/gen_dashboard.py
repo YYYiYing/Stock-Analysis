@@ -222,7 +222,7 @@ def generate(sid):
     k3=f"""<div class="kpi-row">
 <div class="kpi-card {'green' if cr_l and cr_l>150 else 'orange'}"><div class="kpi-label">流動比率</div><div class="kpi-value">{fmt_pct(cr_l)}</div><div class="kpi-change neutral">■ {cr_grade}</div></div>
 <div class="kpi-card {'green' if dr_l and dr_l<60 else 'red'}"><div class="kpi-label">負債比率</div><div class="kpi-value">{fmt_pct(dr_l)}</div><div class="kpi-change neutral">■ {dr_grade}</div></div>
-<div class="kpi-card {'green' if (L('op_cf') or 0)>0 else 'red'}"><div class="kpi-label">營業現金流 (億元)</div><div class="kpi-value">{fmt(L('op_cf'))}</div><div class="kpi-change neutral">■ 為淨利的 {ocf_ni:.1f} 倍</div></div>
+<div class="kpi-card {'green' if (L('op_cf') or 0)>0 else 'red'}"><div class="kpi-label">營業現金流 (億元)</div><div class="kpi-value">{fmt(L('op_cf'))}</div><div class="kpi-change neutral">■ 為淨利的 {f"{ocf_ni:.1f} 倍" if ocf_ni is not None else "—"}</div></div>
 <div class="kpi-card {'green' if (L('fcf') or 0)>0 else 'red'}"><div class="kpi-label">自由現金流 (億元)</div><div class="kpi-value">{fmt(L('fcf'))}</div><div class="kpi-change neutral">■ Capex {fmt(L('capex'))} 億</div></div>
 <div class="kpi-card purple"><div class="kpi-label">現金部位 (億元)</div><div class="kpi-value">{fmt(L('cash'))}</div><div class="kpi-change {'up' if (cash_yoy or 0)>0 else 'down'}">{'▲' if (cash_yoy or 0)>0 else '▼'} {cash_yoy:+.1f}% YoY</div></div>
 </div>"""
@@ -230,7 +230,7 @@ def generate(sid):
 <li>流動比率 {fmt_pct(g('current_ratio')[0])} → {fmt_pct(cr_l)}，{cr_grade}，短期償債能力{'良好' if cr_l and cr_l>150 else '偏弱'}</li>
 <li>負債比率 {fmt_pct(g('debt_ratio')[0])} → {fmt_pct(dr_l)}，{dr_grade}</li>
 <li>現金部位 {fmt(M[years[0]]['cash'])} → {fmt(L('cash'))} 億（{years[-1]}年 {cash_yoy:+.1f}%），{'財務彈性充足' if (cash_yoy or 0)>0 else '因配息／投資消化'}</li>
-<li>營業現金流 {fmt(L('op_cf'))} 億，為淨利的 {ocf_ni:.1f} 倍，{'獲利含金量高' if ocf_ni and ocf_ni>0.8 else '現金轉換待改善'}</li>
+<li>營業現金流 {fmt(L('op_cf'))} 億，為淨利的 {f"{ocf_ni:.1f} 倍" if ocf_ni is not None else "—"}，{f"獲利含金量高" if ocf_ni and ocf_ni>0.8 else "現金轉換待改善" if ocf_ni is not None else "現金數據待補"}</li>
 </ul>"""
 
     def table(rows):
@@ -451,7 +451,8 @@ def generate(sid):
                 return ("up" if qoq>0 else "down", f"{'▲' if qoq>0 else '▼'} {'轉強' if qoq>0 else '轉弱'}")
             except:
                 return ("neutral","■ 持平")
-        rows_html="".join(f"<tr><td>{x.get('label')}</td><td>{(x.get('revenue',0)/1e8 if abs(x.get('revenue',0))>1e6 else x.get('revenue') or 0):.2f}</td><td>{(x.get('gross_margin') or 0):.1f}%</td><td>{(x.get('net_income',0)/1e8 if abs(x.get('net_income',0))>1e6 else x.get('net_income') or 0):.2f}</td><td>{(x.get('net_margin') or 0):.1f}%</td><td>{x.get('eps')}</td><td class=\"{q_trend(idx)[0]}\">{q_trend(idx)[1]}</td></tr>" for idx, x in enumerate(j["quarterly"]))
+        # 最新一季置頂（與年報精神一致：最新在前便於對比近期動能）
+        rows_html="".join(f"<tr><td>{x.get('label')}</td><td>{(x.get('revenue',0)/1e8 if abs(x.get('revenue',0))>1e6 else x.get('revenue') or 0):.2f}</td><td>{(x.get('gross_margin') or 0):.1f}%</td><td>{(x.get('net_income',0)/1e8 if abs(x.get('net_income',0))>1e6 else x.get('net_income') or 0):.2f}</td><td>{(x.get('net_margin') or 0):.1f}%</td><td>{x.get('eps')}</td><td class=\"{q_trend(len(j["quarterly"])-1-idx)[0]}\">{q_trend(len(j["quarterly"])-1-idx)[1]}</td></tr>" for idx, x in enumerate(reversed(j["quarterly"])))
         momentum_content=f'<div id="momentum" class="tab-content"><div class="insight-box"><h3>季月動能亮點</h3>{momentum_insight}</div><div class="charts-grid">{momentum_charts}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>季度</th><th>營收(億)</th><th>毛利率</th><th>淨利(億)</th><th>淨利率</th><th>EPS</th><th>趨勢評估</th></tr></thead><tbody>'+rows_html+'</tbody></table></div></div>'
     ops_charts="".join(charts[0:4])
     profit_charts="".join(charts[4:8])
