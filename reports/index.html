@@ -6,71 +6,44 @@
     <title>台股財務分析儀表板</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { 
-            font-family: 'Microsoft JhengHei', 'Noto Sans TC', sans-serif; 
-            background: #f0f4f8; 
-            color: #2d3748;
-            padding: 24px;
-        }
-        .header {
-            background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #3182ce 100%);
-            color: white; 
-            padding: 32px; 
-            border-radius: 12px; 
-            margin-bottom: 24px;
-        }
+        body { font-family: 'Microsoft JhengHei', 'Noto Sans TC', sans-serif; background: #f0f4f8; color: #2d3748; padding: 24px; }
+        .header { background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #3182ce 100%); color: white; padding: 32px; border-radius: 12px; margin-bottom: 24px; }
         .header h1 { font-size: 1.8rem; margin-bottom: 8px; }
         .header .subtitle { font-size: 0.9rem; opacity: 0.9; }
-        .container { max-width: 900px; margin: 0 auto; }
-        .stats { 
-            display: flex; 
-            gap: 16px; 
-            margin-bottom: 24px; 
-        }
-        .stat-card {
-            flex: 1;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-            text-align: center;
-        }
+        .container { max-width: 1080px; margin: 0 auto; }
+        .stats { display: flex; gap: 16px; margin-bottom: 24px; }
+        .stat-card { flex: 1; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); text-align: center; }
         .stat-value { font-size: 2rem; font-weight: 700; color: #2b6cb0; }
         .stat-label { font-size: 0.85rem; color: #718096; margin-top: 4px; }
-        table { 
-            width: 100%; 
-            background: white; 
-            border-radius: 12px; 
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-        }
-        th { 
-            background: #2b6cb0; 
-            color: white; 
-            padding: 14px 20px; 
-            text-align: left;
-            font-weight: 600;
-        }
-        td { 
-            padding: 12px 20px; 
-            border-bottom: 1px solid #e2e8f0;
-        }
+        table { width: 100%; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-collapse: collapse; }
+        th { background: #2b6cb0; color: white; padding: 14px 16px; text-align: left; font-weight: 600; font-size: 0.88rem; white-space: nowrap; }
+        th.light-col { width: 56px; text-align: center; }
+        th.summary-col { min-width: 240px; }
+        td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 0.88rem; }
         tr:hover td { background: #f7fafc; }
         a { color: #3182ce; text-decoration: none; }
         a:hover { text-decoration: underline; }
-        .btn {
-            background: #3182ce;
-            color: white;
-            padding: 6px 14px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-        }
+        .btn { background: #3182ce; color: white; padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; display: inline-block; }
         .btn:hover { background: #2b6cb0; text-decoration: none; }
-        .footer {
-            text-align: center;
-            margin-top: 24px;
-            color: #718096;
-            font-size: 0.85rem;
+        .light-cell { text-align: center; font-size: 1.25rem; }
+        .light { display: inline-block; width: 32px; height: 32px; line-height: 32px; border-radius: 50%; text-align: center; font-size: 1.05rem; }
+        .light.red { background: #fed7d7; }
+        .light.orange { background: #feebc8; }
+        .light.yellow { background: #fefcbf; }
+        .light.green { background: #c6f6d5; }
+        .light.blue { background: #bee3f8; }
+        .light.gray { background: #e2e8f0; }
+        .summary { color: #4a5568; font-size: 0.82rem; line-height: 1.4; max-width: 420px; }
+        .legend { display: flex; gap: 12px; align-items: center; justify-content: center; margin: 14px 0 6px; font-size: 0.78rem; color: #718096; flex-wrap: wrap; }
+        .legend span { display: inline-flex; align-items: center; gap: 4px; }
+        .legend i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+        .footer { text-align: center; margin-top: 18px; color: #718096; font-size: 0.82rem; }
+        @media (max-width: 768px) {
+            .container { padding: 0; }
+            table { font-size: 0.8rem; }
+            th, td { padding: 10px 8px; }
+            .summary { font-size: 0.76rem; max-width: 160px; }
+            .header { padding: 18px 16px; }
         }
     </style>
 </head>
@@ -78,66 +51,84 @@
     <div class="container">
         <div class="header">
             <h1>台股財務分析儀表板</h1>
-            <div class="subtitle">自動生成的三維財務分析報告總覽｜最後更新：2026-08-21 19:54</div>
+            <div class="subtitle">自動生成的三維財務分析報告總覽｜最後更新：2026-08-21 20:29｜燈號依 ROE/淨利率/負債/流動/獲利趨勢綜合判定</div>
         </div>
-        
         <div class="stats">
             <div class="stat-card">
                 <div class="stat-value">7</div>
                 <div class="stat-label">已分析個股</div>
             </div>
         </div>
-        
         <table>
             <thead>
                 <tr>
+                    <th class="light-col">燈號</th>
                     <th>股票代碼</th>
                     <th>公司名稱</th>
+                    <th class="summary-col">分析摘要</th>
                     <th>操作</th>
                 </tr>
             </thead>
             <tbody>
         <tr>
+            <td class="light-cell"><span class="light orange" title="獲利偏低">🟠</span></td>
             <td><a href="2540_愛山林_analysis.html">2540</a></td>
             <td><a href="2540_愛山林_analysis.html">愛山林</a></td>
+            <td class="summary">營收113億 +1.3%｜EPS 0.69 驟降｜ROE 3.9% 現金吃緊</td>
             <td><a href="2540_愛山林_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
+            <td class="light-cell"><span class="light yellow" title="中性">🟡</span></td>
             <td><a href="2603_長榮_analysis.html">2603</a></td>
             <td><a href="2603_長榮_analysis.html">長榮</a></td>
+            <td class="summary">營收3791億 -18.2%｜EPS31.7 ROE12%｜負債34%</td>
             <td><a href="2603_長榮_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
+            <td class="light-cell"><span class="light blue" title="優異">🔵</span></td>
             <td><a href="3005_神基_analysis.html">3005</a></td>
             <td><a href="3005_神基_analysis.html">神基</a></td>
+            <td class="summary">營收394億 +10.6%｜EPS8.4 ROE19%｜負債42%</td>
             <td><a href="3005_神基_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
+            <td class="light-cell"><span class="light orange" title="獲利偏低">🟠</span></td>
             <td><a href="3605_宏致_analysis.html">3605</a></td>
             <td><a href="3605_宏致_analysis.html">宏致</a></td>
+            <td class="summary">營收27億 +0.9%｜EPS0.8 ROE2%｜負債47%</td>
             <td><a href="3605_宏致_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
+            <td class="light-cell"><span class="light yellow" title="中性">🟡</span></td>
             <td><a href="5243_乙盛-KY_analysis.html">5243</a></td>
             <td><a href="5243_乙盛-KY_analysis.html">乙盛-KY</a></td>
+            <td class="summary">營收121億 -7.7%｜EPS4.4 ROE9%｜負債40%</td>
             <td><a href="5243_乙盛-KY_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
+            <td class="light-cell"><span class="light green" title="良好">🟢</span></td>
             <td><a href="5904_寶雅_analysis.html">5904</a></td>
             <td><a href="5904_寶雅_analysis.html">寶雅</a></td>
+            <td class="summary">營收253億 +7.2%｜EPS 29.5 ROE 39%｜毛利率穩 45%</td>
             <td><a href="5904_寶雅_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
+            <td class="light-cell"><span class="light green" title="良好">🟢</span></td>
             <td><a href="8069_元太_analysis.html">8069</a></td>
             <td><a href="8069_元太_analysis.html">元太</a></td>
+            <td class="summary">營收361億 +12%｜電子紙龍頭 ROE 24%｜毛利率54%佳</td>
             <td><a href="8069_元太_analysis.html" class="btn">查看分析</a></td>
         </tr>
             </tbody>
         </table>
-        
-        <div class="footer">
-            資料來源：Goodinfo.tw｜分析期間：最近三年｜金額單位：億元 (NTD)
+        <div class="legend">
+            <span><i style="background:#bee3f8"></i> 🔵優異</span>
+            <span><i style="background:#c6f6d5"></i> 🟢良好</span>
+            <span><i style="background:#fefcbf"></i> 🟡中性</span>
+            <span><i style="background:#feebc8"></i> 🟠注意</span>
+            <span><i style="background:#fed7d7"></i> 🔴警示</span>
         </div>
+        <div class="footer">資料來源：Goodinfo.tw｜分析期間：最近三年｜金額單位：億元 (NTD)｜點擊代碼/名稱查看三維儀表板</div>
     </div>
 </body>
 </html>
