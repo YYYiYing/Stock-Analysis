@@ -1,0 +1,176 @@
+{
+ "stock_id": "3605",
+ "company": "宏致",
+ "years": [
+  "2023",
+  "2024",
+  "2025"
+ ],
+ "income_statement": {
+  "營業收入": {
+   "2023": 21.68,
+   "2024": 26.84,
+   "2025": 27.07
+  },
+  "營業成本": {
+   "2023": 16.93,
+   "2024": 20.14,
+   "2025": 19.85
+  },
+  "營業毛利": {
+   "2023": 4.75,
+   "2024": 6.7,
+   "2025": 7.22
+  },
+  "營業利益": {
+   "2023": -0.48,
+   "2024": 1.15,
+   "2025": 1.37
+  },
+  "稅前淨利": {
+   "2023": -1.00783,
+   "2024": 1.61172,
+   "2025": 1.61296
+  },
+  "所得稅費用": {
+   "2023": -0.09131,
+   "2024": 0.1643,
+   "2025": 0.27207
+  },
+  "稅後淨利": {
+   "2023": -0.92,
+   "2024": 1.45,
+   "2025": 1.34
+  }
+ },
+ "balance_sheet": {},
+ "cash_flow": {},
+ "metrics": {
+  "2023": {
+   "revenue": 21.68,
+   "gross_profit": 4.75,
+   "sell_exp": null,
+   "admin_exp": null,
+   "rd_exp": null,
+   "op_income": -0.48,
+   "net_income": -0.92,
+   "eps": -0.68,
+   "cash": 20.58,
+   "inventory": 11.89,
+   "current_assets": 61.75,
+   "current_liabilities": 46.64,
+   "total_assets": 122.51,
+   "total_liabilities": 69.94,
+   "equity": 52.55,
+   "op_cf": 6.63,
+   "inv_cf": -10.5,
+   "fin_cf": 0.43,
+   "capex": 8.65,
+   "fcf": -2.02,
+   "dividend": 0.55,
+   "gross_margin": 21.91,
+   "op_margin": -2.21,
+   "net_margin": -4.23,
+   "current_ratio": 132.41,
+   "debt_ratio": 57.09,
+   "roe": -1.74,
+   "roa": -0.75,
+   "sell_ratio": null,
+   "admin_ratio": null,
+   "rd_ratio": null,
+   "total_opex_ratio": 24.13
+  },
+  "2024": {
+   "revenue": 26.84,
+   "gross_profit": 6.7,
+   "sell_exp": null,
+   "admin_exp": null,
+   "rd_exp": null,
+   "op_income": 1.15,
+   "net_income": 1.45,
+   "eps": 1.03,
+   "cash": 20.01,
+   "inventory": 13.94,
+   "current_assets": 69.69,
+   "current_liabilities": 35.7,
+   "total_assets": 135.96,
+   "total_liabilities": 71.34,
+   "equity": 64.61,
+   "op_cf": 9.71,
+   "inv_cf": -11.17,
+   "fin_cf": 0.19,
+   "capex": 8.0,
+   "fcf": 1.71,
+   "dividend": 0.0,
+   "gross_margin": 24.94,
+   "op_margin": 4.28,
+   "net_margin": 5.39,
+   "current_ratio": 195.18,
+   "debt_ratio": 52.47,
+   "roe": 2.24,
+   "roa": 1.06,
+   "sell_ratio": null,
+   "admin_ratio": null,
+   "rd_ratio": null,
+   "total_opex_ratio": 20.67
+  },
+  "2025": {
+   "revenue": 27.07,
+   "gross_profit": 7.22,
+   "sell_exp": null,
+   "admin_exp": null,
+   "rd_exp": null,
+   "op_income": 1.37,
+   "net_income": 1.34,
+   "eps": 0.84,
+   "cash": 24.83,
+   "inventory": 14.36,
+   "current_assets": 75.06,
+   "current_liabilities": 40.16,
+   "total_assets": 148.49,
+   "total_liabilities": 69.15,
+   "equity": 79.33,
+   "op_cf": 12.1,
+   "inv_cf": -9.84,
+   "fin_cf": 1.44,
+   "capex": 9.38,
+   "fcf": 2.72,
+   "dividend": 0.72,
+   "gross_margin": 26.65,
+   "op_margin": 5.06,
+   "net_margin": 4.95,
+   "current_ratio": 186.92,
+   "debt_ratio": 46.57,
+   "roe": 1.69,
+   "roa": 0.9,
+   "sell_ratio": null,
+   "admin_ratio": null,
+   "rd_ratio": null,
+   "total_opex_ratio": 21.59
+  }
+ },
+ "metadata": {
+  "fetched_at": "2026-08-21T16:00:00+08:00",
+  "source": "FinMind (MOPS)",
+  "source_urls": {
+   "income_statement": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=IS_YEAR&STOCK_ID=3605",
+   "balance_sheet": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=BS_YEAR&STOCK_ID=3605",
+   "cash_flow": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=CF_YEAR&STOCK_ID=3605"
+  },
+  "mops_url": "https://mops.twse.com.tw/mops/web/t05st01?step=1&co_id=3605&TYPEK=sii",
+  "years_covered": [
+   "2023",
+   "2024",
+   "2025"
+  ],
+  "currency": "TWD 億元",
+  "supplement_source": {
+   "cash_flow": "FinMind TaiwanStockFinancialStatements/BalanceSheet/CashFlowsStatement",
+   "reason": "Goodinfo 限流，改用 FinMind 官方財報"
+  }
+ },
+ "verification": {
+  "sanity": [],
+  "sanity_pass": true
+ }
+}

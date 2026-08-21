@@ -1093,7 +1093,7 @@
   }
  },
  "metadata": {
-  "fetched_at": "2026-08-21T16:23:25+08:00",
+  "fetched_at": "2026-08-21T18:23:34+08:00",
   "source": "Goodinfo.tw",
   "source_urls": {
    "income_statement": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=IS_YEAR&STOCK_ID=5243",
@@ -1107,12 +1107,7 @@
    "2024",
    "2023"
   ],
-  "currency": "TWD 億元",
-  "supplement_source": {
-   "cash_flow": "FinMind TaiwanStockCashFlowsStatement（源頭：MOPS）",
-   "reason": "Goodinfo CF 表欄位解析錯位，改以 FinMind 年報值（12-31 YTD）為準",
-   "patched_at": "2026-08-21"
-  }
+  "currency": "TWD 億元"
  },
  "metrics": {
   "2025": {
@@ -1131,11 +1126,11 @@
    "total_liabilities": 54.7,
    "total_assets": 137.0,
    "equity": 82.25,
-   "op_cf": 21.98,
-   "inv_cf": -3.85,
-   "fin_cf": -4.38,
-   "capex": 3.19,
-   "dividend": -2.53,
+   "op_cf": 4.59,
+   "inv_cf": 2025.0,
+   "fin_cf": 2025.0,
+   "capex": -0.013,
+   "dividend": 3.5,
    "gross_margin": 21.32,
    "sell_ratio": 1.64,
    "admin_ratio": 10.24,
@@ -1147,7 +1142,7 @@
    "debt_ratio": 39.93,
    "roe": 9.01,
    "roa": 5.41,
-   "fcf": 18.79
+   "fcf": 4.603
   },
   "2024": {
    "revenue": 130.9,
@@ -1165,11 +1160,11 @@
    "total_liabilities": 53.05,
    "total_assets": 129.5,
    "equity": 76.43,
-   "op_cf": 8.29,
-   "inv_cf": -4.26,
-   "fin_cf": -4.54,
-   "capex": 4.54,
-   "dividend": -2.7,
+   "op_cf": 14.67,
+   "inv_cf": 2023.0,
+   "fin_cf": 2023.0,
+   "capex": 0.012,
+   "dividend": 3.0,
    "gross_margin": 19.28,
    "sell_ratio": 2.01,
    "admin_ratio": 10.24,
@@ -1181,7 +1176,7 @@
    "debt_ratio": 40.97,
    "roe": 7.41,
    "roa": 4.37,
-   "fcf": 3.75
+   "fcf": 14.658
   },
   "2023": {
    "revenue": 115.6,
@@ -1199,11 +1194,11 @@
    "total_liabilities": 45.58,
    "total_assets": 119.3,
    "equity": 73.73,
-   "op_cf": 24.12,
-   "inv_cf": -9.19,
-   "fin_cf": -5.17,
-   "capex": 9.27,
-   "dividend": -2.86,
+   "op_cf": -11.02,
+   "inv_cf": 2021.0,
+   "fin_cf": 2021.0,
+   "capex": -0.008,
+   "dividend": 2.5,
    "gross_margin": 19.84,
    "sell_ratio": 1.53,
    "admin_ratio": 9.76,
@@ -1215,7 +1210,7 @@
    "debt_ratio": 38.21,
    "roe": 8.1,
    "roa": 5.0,
-   "fcf": 14.86
+   "fcf": -11.012
   }
  },
  "company": "乙盛-KY",

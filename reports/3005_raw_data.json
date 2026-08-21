@@ -1335,7 +1335,7 @@
   }
  },
  "metadata": {
-  "fetched_at": "2026-08-21T16:23:17+08:00",
+  "fetched_at": "2026-08-21T18:23:27+08:00",
   "source": "Goodinfo.tw",
   "source_urls": {
    "income_statement": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=IS_YEAR&STOCK_ID=3005",
@@ -1349,12 +1349,7 @@
    "2024",
    "2023"
   ],
-  "currency": "TWD 億元",
-  "supplement_source": {
-   "cash_flow": "FinMind TaiwanStockCashFlowsStatement（源頭：MOPS）",
-   "reason": "Goodinfo CF 表欄位解析錯位，改以 FinMind 年報值（12-31 YTD）為準",
-   "patched_at": "2026-08-21"
-  }
+  "currency": "TWD 億元"
  },
  "metrics": {
   "2025": {
@@ -1373,11 +1368,11 @@
    "total_liabilities": 208.4,
    "total_assets": 501.5,
    "equity": 293.1,
-   "op_cf": 57.76,
-   "inv_cf": -32.15,
-   "fin_cf": -27.66,
-   "capex": 18.39,
-   "dividend": -0.26,
+   "op_cf": -19.57,
+   "inv_cf": 2025.0,
+   "fin_cf": 2025.0,
+   "capex": 0.11,
+   "dividend": 6.0,
    "gross_margin": 31.81,
    "sell_ratio": 7.46,
    "admin_ratio": 3.47,
@@ -1389,7 +1384,7 @@
    "debt_ratio": 41.56,
    "roe": 18.64,
    "roa": 10.9,
-   "fcf": 39.37
+   "fcf": -19.68
   },
   "2024": {
    "revenue": 356.7,
@@ -1407,11 +1402,11 @@
    "total_liabilities": 194.7,
    "total_assets": 465.2,
    "equity": 270.5,
-   "op_cf": 58.41,
-   "inv_cf": -21.76,
-   "fin_cf": -23.8,
-   "capex": 20.81,
-   "dividend": -0.42,
+   "op_cf": -8.4,
+   "inv_cf": 2023.0,
+   "fin_cf": 2023.0,
+   "capex": 0.09,
+   "dividend": 5.5,
    "gross_margin": 31.76,
    "sell_ratio": 7.26,
    "admin_ratio": 4.66,
@@ -1423,7 +1418,7 @@
    "debt_ratio": 41.85,
    "roe": 17.36,
    "roa": 10.09,
-   "fcf": 37.6
+   "fcf": -8.49
   },
   "2023": {
    "revenue": 347.9,
@@ -1441,11 +1436,11 @@
    "total_liabilities": 179.5,
    "total_assets": 415.9,
    "equity": 236.4,
-   "op_cf": 60.14,
-   "inv_cf": -2.64,
-   "fin_cf": -20.17,
-   "capex": 7.57,
-   "dividend": -0.14,
+   "op_cf": -23.65,
+   "inv_cf": 2021.0,
+   "fin_cf": 2021.0,
+   "capex": 0.16,
+   "dividend": 5.0,
    "gross_margin": 27.98,
    "sell_ratio": 6.29,
    "admin_ratio": 5.48,
@@ -1457,7 +1452,7 @@
    "debt_ratio": 43.16,
    "roe": 16.74,
    "roa": 9.51,
-   "fcf": 52.57
+   "fcf": -23.81
   }
  },
  "company": "神基",
