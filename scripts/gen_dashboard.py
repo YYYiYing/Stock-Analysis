@@ -428,8 +428,31 @@ def generate(sid):
         else:
             momentum_insight="<ul><li>季月数据加载中</li></ul>"
         momentum_charts="".join(m_charts)
-        rows_html="".join(f"<tr><td>{x.get('label')}</td><td>{(x.get('revenue',0)/1e8 if abs(x.get('revenue',0))>1e6 else x.get('revenue') or 0):.2f}</td><td>{(x.get('gross_margin') or 0):.1f}%</td><td>{(x.get('net_income',0)/1e8 if abs(x.get('net_income',0))>1e6 else x.get('net_income') or 0):.2f}</td><td>{(x.get('net_margin') or 0):.1f}%</td><td>{x.get('eps')}</td></tr>" for x in j["quarterly"])
-        momentum_content=f'<div id="momentum" class="tab-content"><div class="insight-box"><h3>季月動能亮点</h3>{momentum_insight}</div><div class="charts-grid">{momentum_charts}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>季度</th><th>營收(亿)</th><th>毛利率</th><th>淨利(亿)</th><th>淨利率</th><th>EPS</th></tr></thead><tbody>'+rows_html+'</tbody></table></div></div>'
+        # 依年報精神：每列季度的趨勢評估（QoQ營收與淨利率綜合）
+        def q_trend(idx):
+            if idx==0:
+                return ("neutral","■ 首季")
+            cur=j["quarterly"][idx]
+            prev=j["quarterly"][idx-1]
+            def norm(v): return v/1e8 if v and abs(v)>1e6 else v
+            cur_rev=norm(cur.get("revenue"))
+            prev_rev=norm(prev.get("revenue"))
+            cur_nm=cur.get("net_margin")
+            prev_nm=prev.get("net_margin")
+            try:
+                qoq=(cur_rev/prev_rev-1)*100 if cur_rev and prev_rev else 0
+                nm_d=(cur_nm - prev_nm) if cur_nm is not None and prev_nm is not None else 0
+                if qoq>5 and nm_d>0:
+                    return ("up","▲ 轉強")
+                if qoq<-5 or nm_d<-3:
+                    return ("down","▼ 轉弱")
+                if abs(qoq)<2:
+                    return ("neutral","■ 持平")
+                return ("up" if qoq>0 else "down", f"{'▲' if qoq>0 else '▼'} {'轉強' if qoq>0 else '轉弱'}")
+            except:
+                return ("neutral","■ 持平")
+        rows_html="".join(f"<tr><td>{x.get('label')}</td><td>{(x.get('revenue',0)/1e8 if abs(x.get('revenue',0))>1e6 else x.get('revenue') or 0):.2f}</td><td>{(x.get('gross_margin') or 0):.1f}%</td><td>{(x.get('net_income',0)/1e8 if abs(x.get('net_income',0))>1e6 else x.get('net_income') or 0):.2f}</td><td>{(x.get('net_margin') or 0):.1f}%</td><td>{x.get('eps')}</td><td class=\"{q_trend(idx)[0]}\">{q_trend(idx)[1]}</td></tr>" for idx, x in enumerate(j["quarterly"]))
+        momentum_content=f'<div id="momentum" class="tab-content"><div class="insight-box"><h3>季月動能亮点</h3>{momentum_insight}</div><div class="charts-grid">{momentum_charts}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>季度</th><th>營收(億)</th><th>毛利率</th><th>淨利(億)</th><th>淨利率</th><th>EPS</th><th>趨勢評估</th></tr></thead><tbody>'+rows_html+'</tbody></table></div></div>'
     ops_charts="".join(charts[0:4])
     profit_charts="".join(charts[4:8])
     fin_charts="".join(charts[8:12])

@@ -133,11 +133,11 @@ def generate_index_html(reports):
     <title>台股財務分析儀表板</title>
     <style>
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-        body {{ font-family: 'Microsoft JhengHei', 'Noto Sans TC', sans-serif; background: #f0f4f8; color: #2d3748; padding: 24px; }}
-        .header {{ background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #3182ce 100%); color: white; padding: 32px; border-radius: 12px; margin-bottom: 24px; }}
+        body {{ font-family: 'Microsoft JhengHei', 'Noto Sans TC', sans-serif; background: #f0f4f8; color: #2d3748; padding: 0; }}
+        .header {{ background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #3182ce 100%); color: white; padding: 32px; border-radius: 12px; margin-bottom: 24px; width: 100%; box-sizing: border-box; }}
         .header h1 {{ font-size: 1.8rem; margin-bottom: 8px; }}
         .header .subtitle {{ font-size: 0.9rem; opacity: 0.9; }}
-        .container {{ max-width: 1080px; margin: 0 auto; }}
+        .container {{ max-width: 1080px; margin: 0 auto; padding: 24px; }}
         .stats {{ display: flex; gap: 16px; margin-bottom: 24px; }}
         .stat-card {{ flex: 1; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); text-align: center; }}
         .stat-value {{ font-size: 2rem; font-weight: 700; color: #2b6cb0; }}
