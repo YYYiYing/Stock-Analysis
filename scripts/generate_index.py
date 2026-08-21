@@ -138,6 +138,7 @@ def generate_index_html(reports):
         .header h1 {{ font-size: 1.8rem; margin-bottom: 8px; }}
         .header .subtitle {{ font-size: 0.9rem; opacity: 0.9; }}
         .container {{ max-width: 1080px; margin: 0 auto; padding: 24px; }}
+        .table-wrap {{ overflow-x: auto; }}
         .stats {{ display: flex; gap: 16px; margin-bottom: 24px; }}
         .stat-card {{ flex: 1; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); text-align: center; }}
         .stat-value {{ font-size: 2rem; font-weight: 700; color: #2b6cb0; }}
@@ -166,11 +167,11 @@ def generate_index_html(reports):
         .legend i {{ width: 14px; height: 14px; border-radius: 50%; display: inline-block; }}
         .footer {{ text-align: center; margin-top: 18px; color: #718096; font-size: 0.82rem; }}
         @media (max-width: 768px) {{
-            .container {{ padding: 0; }}
-            table {{ font-size: 0.8rem; }}
+            .container {{ padding: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }}
+            .header {{ padding: 18px 16px; min-width: 560px; width: 100%; }}
+            table {{ font-size: 0.8rem; min-width: 560px; }}
             th, td {{ padding: 10px 8px; }}
             .summary {{ font-size: 0.76rem; max-width: 160px; }}
-            .header {{ padding: 18px 16px; }}
         }}
     </style>
 </head>

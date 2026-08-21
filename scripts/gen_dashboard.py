@@ -348,9 +348,9 @@ def generate(sid):
             q_nm=[x.get("net_margin") for x in q]
             scales={"x":{"grid":{"display":False}},"y":{"grid":{"color":"rgba(0,0,0,0.05)"},"title":{"display":True,"text":"億元"}},"y2":{"position":"right","grid":{"display":False},"ticks":{"callback":"__PCT__"},"title":{"display":True,"text":"%"}}}
             cfg={"type":"bar","data":{"labels":q_labels,"datasets":[{"label":"單季營收 (億元)","data":q_rev,"backgroundColor":"rgba(49,130,206,0.15)","borderColor":"#3182ce","borderWidth":2,"yAxisID":"y"},{"label":"毛利率 (%)","data":q_gm,"type":"line","borderColor":"#38a169","backgroundColor":"#38a169","pointRadius":4,"tension":0.3,"yAxisID":"y2"}]},"options":{**common, "scales":scales}}
-            m_charts.append(wrap("qqRevChart","單季營收与毛利率（近8季）",cfg))
+            m_charts.append(wrap("qqRevChart","單季營收與毛利率（近8季）",cfg))
             cfg2={"type":"bar","data":{"labels":q_labels,"datasets":[{"label":"單季淨利 (億元)","data":q_ni,"backgroundColor":"rgba(56,161,105,0.15)","borderColor":"#38a169","borderWidth":2,"yAxisID":"y"},{"label":"淨利率 (%)","data":q_nm,"type":"line","borderColor":"#805ad5","backgroundColor":"#805ad5","pointRadius":4,"tension":0.3,"yAxisID":"y2"}]},"options":{**common, "scales":scales}}
-            m_charts.append(wrap("qqNiChart","單季淨利与淨利率",cfg2))
+            m_charts.append(wrap("qqNiChart","單季淨利與淨利率",cfg2))
             qoq=[x.get("qoq") for x in q]
             if all(v is None for v in qoq):
                 qoq=[]
@@ -369,7 +369,7 @@ def generate(sid):
                 else: mom.append((m_rev[i]/m_rev[i-1]-1)*100)
             scales={"x":{"grid":{"display":False}},"y":{"grid":{"color":"rgba(0,0,0,0.05)"},"title":{"display":True,"text":"億元"}},"y2":{"position":"right","grid":{"display":False},"ticks":{"callback":"__PCT__"}}}
             cfg={"type":"bar","data":{"labels":m_labels,"datasets":[{"label":"月營收 (億元)","data":m_rev,"backgroundColor":"rgba(49,130,206,0.2)","borderColor":"#3182ce","borderWidth":1,"yAxisID":"y"},{"label":"MoM (%)","data":mom,"type":"line","borderColor":"#dd6b20","backgroundColor":"#dd6b20","pointRadius":3,"tension":0.3,"yAxisID":"y2"}]},"options":{**common, "scales":scales}}
-            m_charts.append(wrap("mmRevChart","月營收与 MoM（近12月）",cfg))
+            m_charts.append(wrap("mmRevChart","月營收與 MoM（近12月）",cfg))
         q=j.get("quarterly",[])
         if q:
             last=q[-1]
@@ -452,7 +452,7 @@ def generate(sid):
             except:
                 return ("neutral","■ 持平")
         rows_html="".join(f"<tr><td>{x.get('label')}</td><td>{(x.get('revenue',0)/1e8 if abs(x.get('revenue',0))>1e6 else x.get('revenue') or 0):.2f}</td><td>{(x.get('gross_margin') or 0):.1f}%</td><td>{(x.get('net_income',0)/1e8 if abs(x.get('net_income',0))>1e6 else x.get('net_income') or 0):.2f}</td><td>{(x.get('net_margin') or 0):.1f}%</td><td>{x.get('eps')}</td><td class=\"{q_trend(idx)[0]}\">{q_trend(idx)[1]}</td></tr>" for idx, x in enumerate(j["quarterly"]))
-        momentum_content=f'<div id="momentum" class="tab-content"><div class="insight-box"><h3>季月動能亮点</h3>{momentum_insight}</div><div class="charts-grid">{momentum_charts}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>季度</th><th>營收(億)</th><th>毛利率</th><th>淨利(億)</th><th>淨利率</th><th>EPS</th><th>趨勢評估</th></tr></thead><tbody>'+rows_html+'</tbody></table></div></div>'
+        momentum_content=f'<div id="momentum" class="tab-content"><div class="insight-box"><h3>季月動能亮點</h3>{momentum_insight}</div><div class="charts-grid">{momentum_charts}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>季度</th><th>營收(億)</th><th>毛利率</th><th>淨利(億)</th><th>淨利率</th><th>EPS</th><th>趨勢評估</th></tr></thead><tbody>'+rows_html+'</tbody></table></div></div>'
     ops_charts="".join(charts[0:4])
     profit_charts="".join(charts[4:8])
     fin_charts="".join(charts[8:12])
