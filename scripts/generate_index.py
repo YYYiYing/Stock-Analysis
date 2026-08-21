@@ -180,13 +180,7 @@ def generate_index_html(reports):
             <h1>台股財務分析儀表板</h1>
             <div class="subtitle">自動生成的三維財務分析報告總覽｜最後更新：{datetime.now().strftime('%Y-%m-%d %H:%M')}｜燈號依 ROE/淨利率/負債/流動/獲利趨勢綜合判定</div>
         </div>
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-value">{len(reports)}</div>
-                <div class="stat-label">已分析個股</div>
-            </div>
-        </div>
-        <table>
+<table>
             <thead>
                 <tr>
                     <th class="light-col">燈號</th>

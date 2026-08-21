@@ -341,14 +341,14 @@ def generate(sid):
             q_labels=[x.get("label", x.get("date","")) for x in q]
             def norm(v):
                 if v is None: return None
-                return v/1e8 if v>1e6 else v
+                return v/1e8 if abs(v)>1e6 else v
             q_rev=[norm(x.get("revenue")) for x in q]
             q_gm=[x.get("gross_margin") for x in q]
             q_ni=[norm(x.get("net_income")) for x in q]
             q_nm=[x.get("net_margin") for x in q]
             scales={"x":{"grid":{"display":False}},"y":{"grid":{"color":"rgba(0,0,0,0.05)"},"title":{"display":True,"text":"億元"}},"y2":{"position":"right","grid":{"display":False},"ticks":{"callback":"__PCT__"},"title":{"display":True,"text":"%"}}}
-            cfg={"type":"bar","data":{"labels":q_labels,"datasets":[{"label":"單季营收 (億元)","data":q_rev,"backgroundColor":"rgba(49,130,206,0.15)","borderColor":"#3182ce","borderWidth":2,"yAxisID":"y"},{"label":"毛利率 (%)","data":q_gm,"type":"line","borderColor":"#38a169","backgroundColor":"#38a169","pointRadius":4,"tension":0.3,"yAxisID":"y2"}]},"options":{**common, "scales":scales}}
-            m_charts.append(wrap("qqRevChart","單季营收与毛利率（近8季）",cfg))
+            cfg={"type":"bar","data":{"labels":q_labels,"datasets":[{"label":"單季營收 (億元)","data":q_rev,"backgroundColor":"rgba(49,130,206,0.15)","borderColor":"#3182ce","borderWidth":2,"yAxisID":"y"},{"label":"毛利率 (%)","data":q_gm,"type":"line","borderColor":"#38a169","backgroundColor":"#38a169","pointRadius":4,"tension":0.3,"yAxisID":"y2"}]},"options":{**common, "scales":scales}}
+            m_charts.append(wrap("qqRevChart","單季營收与毛利率（近8季）",cfg))
             cfg2={"type":"bar","data":{"labels":q_labels,"datasets":[{"label":"單季淨利 (億元)","data":q_ni,"backgroundColor":"rgba(56,161,105,0.15)","borderColor":"#38a169","borderWidth":2,"yAxisID":"y"},{"label":"淨利率 (%)","data":q_nm,"type":"line","borderColor":"#805ad5","backgroundColor":"#805ad5","pointRadius":4,"tension":0.3,"yAxisID":"y2"}]},"options":{**common, "scales":scales}}
             m_charts.append(wrap("qqNiChart","單季淨利与淨利率",cfg2))
             qoq=[x.get("qoq") for x in q]
@@ -358,7 +358,7 @@ def generate(sid):
                     if i==0 or q_rev[i] is None or q_rev[i-1] in (None,0): qoq.append(None)
                     else: qoq.append((q_rev[i]/q_rev[i-1]-1)*100)
             cfg3={"type":"bar","data":{"labels":q_labels,"datasets":[{"label":"QoQ (%)","data":qoq,"backgroundColor":["rgba(56,161,105,0.6)" if (v or 0)>0 else "rgba(229,62,62,0.6)" for v in qoq],"borderColor":"#3182ce","borderWidth":1}]},"options":{**common, "scales":{"x":{"grid":{"display":False}},"y":{"ticks":{"callback":"__PCT__"}}}}}
-            m_charts.append(wrap("qqQoqChart","單季营收 QoQ",cfg3))
+            m_charts.append(wrap("qqQoqChart","單季營收 QoQ",cfg3))
         if has_m:
             m_data=j["monthly"]
             m_labels=[x.get("date","") for x in m_data]
@@ -378,17 +378,17 @@ def generate(sid):
             if len(q)>=5:
                 yoy_prev=q[-5]
                 if last.get("revenue") and yoy_prev.get("revenue"):
-                    lv=last["revenue"]/1e8 if last["revenue"]>1e6 else last["revenue"]
-                    pv=yoy_prev["revenue"]/1e8 if yoy_prev["revenue"]>1e6 else yoy_prev["revenue"]
+                    lv=last["revenue"]/1e8 if abs(last["revenue"])>1e6 else last["revenue"]
+                    pv=yoy_prev["revenue"]/1e8 if abs(yoy_prev["revenue"])>1e6 else yoy_prev["revenue"]
                     rev_yoy=(lv/pv-1)*100 if pv else None
             qoq_val=last.get("qoq")
             if qoq_val is None and len(q)>=2:
-                lv=last["revenue"]/1e8 if last["revenue"]>1e6 else last["revenue"]
-                pv=q[-2]["revenue"]/1e8 if q[-2]["revenue"]>1e6 else q[-2]["revenue"]
+                lv=last["revenue"]/1e8 if abs(last["revenue"])>1e6 else last["revenue"]
+                pv=q[-2]["revenue"]/1e8 if abs(q[-2]["revenue"])>1e6 else q[-2]["revenue"]
                 if lv and pv: qoq_val=(lv/pv-1)*100
             insights=[]
             if rev_yoy is not None:
-                insights.append(f"單季营收 {last.get('label')} YoY {rev_yoy:+.1f}%")
+                insights.append(f"單季營收 {last.get('label')} YoY {rev_yoy:+.1f}%")
             if qoq_val is not None:
                 insights.append(f"QoQ {qoq_val:+.1f}%")
             if has_m:
@@ -402,13 +402,34 @@ def generate(sid):
                     yoy_m=(md[-1]["revenue"]/md[-13]["revenue"]-1)*100
                     insights.append(f"月營收 YoY {yoy_m:+.1f}%")
             if not insights:
-                insights.append("近8季营收趋势平稳")
-            momentum_insight="<ul>"+"".join(f"<li>{s}</li>" for s in insights[:4])+"</ul>"
+                insights.append("近8季營收趋势平稳")
+            # 補上年報風格的說明：每條含 幅度 + 意義
+            detailed=[]
+            for s in insights:
+                if "YoY" in s and "營收" in s:
+                    detailed.append(s + "，季度營收年增轉強" if rev_yoy and rev_yoy>5 else s + "，年增動能放緩")
+                elif "QoQ" in s:
+                    try:
+                        val=float(s.split()[1].replace("%","").replace("+",""))
+                        detailed.append(s + "，短期動能轉強" if val>0 else s + "，短期動能轉弱")
+                    except:
+                        detailed.append(s)
+                elif "MoM" in s:
+                    detailed.append(s + "，月動能延續" if "MoM" in s and "+" in s else s)
+                elif "月營收 YoY" in s:
+                    detailed.append(s + "，月年增與季增同步")
+                else:
+                    detailed.append(s)
+            # 再補一條整體季度毛利/淨利趨勢
+            if q:
+                gm_trend = q[-1].get("gross_margin",0) - q[0].get("gross_margin",0) if q[-1].get("gross_margin") and q[0].get("gross_margin") else 0
+                detailed.append(f"毛利率 {q[0].get('gross_margin',0):.1f}% → {q[-1].get('gross_margin',0):.1f}% {'結構改善' if gm_trend>0 else '結構承壓'}")
+            momentum_insight="<ul>"+"".join(f"<li>{s}</li>" for s in detailed[:5])+"</ul>"
         else:
             momentum_insight="<ul><li>季月数据加载中</li></ul>"
         momentum_charts="".join(m_charts)
-        rows_html="".join(f"<tr><td>{x.get('label')}</td><td>{(x.get('revenue',0)/1e8 if x.get('revenue',0)>1e6 else x.get('revenue') or 0):.2f}</td><td>{(x.get('gross_margin') or 0):.1f}%</td><td>{(x.get('net_income',0)/1e8 if x.get('net_income',0)>1e6 else x.get('net_income') or 0):.2f}</td><td>{(x.get('net_margin') or 0):.1f}%</td><td>{x.get('eps')}</td></tr>" for x in j["quarterly"])
-        momentum_content=f'<div id="momentum" class="tab-content"><div class="insight-box"><h3>季月動能亮点</h3>{momentum_insight}</div><div class="charts-grid">{momentum_charts}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>季度</th><th>营收(亿)</th><th>毛利率</th><th>淨利(亿)</th><th>淨利率</th><th>EPS</th></tr></thead><tbody>'+rows_html+'</tbody></table></div></div>'
+        rows_html="".join(f"<tr><td>{x.get('label')}</td><td>{(x.get('revenue',0)/1e8 if abs(x.get('revenue',0))>1e6 else x.get('revenue') or 0):.2f}</td><td>{(x.get('gross_margin') or 0):.1f}%</td><td>{(x.get('net_income',0)/1e8 if abs(x.get('net_income',0))>1e6 else x.get('net_income') or 0):.2f}</td><td>{(x.get('net_margin') or 0):.1f}%</td><td>{x.get('eps')}</td></tr>" for x in j["quarterly"])
+        momentum_content=f'<div id="momentum" class="tab-content"><div class="insight-box"><h3>季月動能亮点</h3>{momentum_insight}</div><div class="charts-grid">{momentum_charts}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>季度</th><th>營收(亿)</th><th>毛利率</th><th>淨利(亿)</th><th>淨利率</th><th>EPS</th></tr></thead><tbody>'+rows_html+'</tbody></table></div></div>'
     ops_charts="".join(charts[0:4])
     profit_charts="".join(charts[4:8])
     fin_charts="".join(charts[8:12])
