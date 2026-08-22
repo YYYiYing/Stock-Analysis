@@ -33,113 +33,112 @@ def load_metrics(stock_id):
     except:
         return None, None
 
-def decide_light(stock_id, latest, prev, m, m_prev):
-    # 年報基底 + 季月動能綜合（年60% + 季30% + 月10%），避免年報遲緩
+def decide_annual(stock_id, m, m_prev):
     is_retail = stock_id == "5904"
     roe = m.get("roe")
     nm = m.get("net_margin")
     dr = m.get("debt_ratio")
     cr = m.get("current_ratio")
     eps = m.get("eps")
-    rev_yoy = None
-    if m.get("revenue") and m_prev.get("revenue"):
-        try:
-            rev_yoy = (m["revenue"]/m_prev["revenue"]-1)*100
-        except: pass
-    # 基礎年報分數 0-4
-    base_score = 2  # 預設中性
-    base_reason = "中性"
     if m.get("net_income") is not None and m["net_income"] < 0:
-        base_score, base_reason = 0, "虧損"
-    elif roe is not None and roe < 0:
-        base_score, base_reason = 0, "ROE為負"
-    elif eps is not None and eps < 0:
-        base_score, base_reason = 0, "EPS為負"
-    elif roe is not None and roe > 18 and nm is not None and nm > 12 and dr is not None and dr < (65 if is_retail else 60):
-        base_score, base_reason = 4, "優異"
-    elif roe is not None and roe > 12 and dr is not None and dr < (75 if is_retail else 70) and nm is not None and nm > 8:
-        base_score, base_reason = 3, "良好"
-    elif dr is not None and dr > (80 if is_retail else 75):
-        base_score, base_reason = 0, f"負債{dr:.0f}%偏高"
-    elif cr is not None and cr < 120:
-        base_score, base_reason = 1, f"流動{cr:.0f}%偏低"
-    elif roe is not None and roe < 5:
-        base_score, base_reason = 1, "獲利偏低"
-    elif roe is not None and 5 <= roe <= 12:
-        base_score, base_reason = 2, "中性"
-    # 季月動能加成（僅有 quarterly/monthly 檔才調分）
-    adj = 0
-    adj_reasons = []
+        return 0, "虧損"
+    if roe is not None and roe < 0:
+        return 0, "ROE為負"
+    if eps is not None and eps < 0:
+        return 0, "EPS為負"
+    if roe is not None and roe > 18 and nm is not None and nm > 12 and dr is not None and dr < (65 if is_retail else 60):
+        return 4, "優異"
+    if roe is not None and roe > 12 and dr is not None and dr < (75 if is_retail else 70) and nm is not None and nm > 8:
+        return 3, "良好"
+    if dr is not None and dr > (80 if is_retail else 75):
+        return 0, f"負債{dr:.0f}%偏高"
+    if cr is not None and cr < 120:
+        return 1, f"流動{cr:.0f}%偏低"
+    if roe is not None and roe < 5:
+        return 1, "獲利偏低"
+    if roe is not None and 5 <= roe <= 12:
+        return 2, "中性"
+    return 2, "中性"
+
+def decide_momentum(stock_id):
     try:
         raw_path = Path(f"reports/{stock_id}_raw_data.json")
-        if raw_path.exists():
-            j = json.load(open(raw_path, encoding='utf-8'))
-            # 季動能：近季 QoQ / YoY / 淨利率變化
-            q = j.get("quarterly", [])
-            if isinstance(q, list) and len(q) >= 2:
-                def norm(v):
-                    if v is None: return None
-                    return v/1e8 if abs(v)>1e6 else v
-                last, prev_q = q[-1], q[-2]
-                cur_rev, prev_rev = norm(last.get("revenue")), norm(prev_q.get("revenue"))
-                qoq = (cur_rev/prev_rev-1)*100 if cur_rev and prev_rev else None
-                # YoY：同季去年
-                yoy = None
-                if len(q) >= 5:
-                    yoy_prev = q[-5]
-                    yoy_prev_rev = norm(yoy_prev.get("revenue"))
-                    if cur_rev and yoy_prev_rev:
-                        yoy = (cur_rev/yoy_prev_rev-1)*100
-                nm_d = None
-                if last.get("net_margin") is not None and prev_q.get("net_margin") is not None:
-                    nm_d = last.get("net_margin") - prev_q.get("net_margin")
-                # 強轉強
-                if qoq is not None and qoq > 8 and (nm_d is None or nm_d > 0):
-                    adj += 1
-                    adj_reasons.append(f"季QoQ+{qoq:.0f}%")
-                elif qoq is not None and qoq < -8:
-                    adj -= 1
-                    adj_reasons.append(f"季QoQ{qoq:.0f}%")
-                elif qoq is not None and qoq > 5 and nm_d is not None and nm_d > 0:
-                    adj += 0.5
-                    adj_reasons.append(f"季QoQ+{qoq:.0f}%")
-                if yoy is not None and yoy > 10:
-                    adj += 0.5
-                    adj_reasons.append(f"季YoY+{yoy:.0f}%")
-                elif yoy is not None and yoy < -10:
-                    adj -= 0.5
-                    adj_reasons.append(f"季YoY{yoy:.0f}%")
-            # 月動能：近3月平均 MoM
-            mm = j.get("monthly", [])
-            if isinstance(mm, list) and len(mm) >= 3:
-                # 取近3月 MoM 平均
-                moms = []
-                for i in range(len(mm)-3, len(mm)):
-                    if i>0 and mm[i].get("revenue") and mm[i-1].get("revenue"):
-                        moms.append((mm[i]["revenue"]/mm[i-1]["revenue"]-1)*100)
-                if moms:
-                    avg_mom = sum(moms)/len(moms)
-                    if avg_mom > 5:
-                        adj += 0.5
-                        adj_reasons.append(f"月均+{avg_mom:.0f}%")
-                    elif avg_mom < -5:
-                        adj -= 0.5
-                        adj_reasons.append(f"月均{avg_mom:.0f}%")
+        if not raw_path.exists():
+            return 2, "無季月", False
+        j = json.load(open(raw_path, encoding='utf-8'))
+        q = j.get("quarterly", [])
+        mm = j.get("monthly", [])
+        has_q = isinstance(q, list) and len(q) >= 2
+        has_m = isinstance(mm, list) and len(mm) >= 3
+        if not has_q and not has_m:
+            return 2, "無季月", False
+        score = 2
+        reasons = []
+        if has_q:
+            def norm(v):
+                if v is None: return None
+                return v/1e8 if abs(v)>1e6 else v
+            last, prev_q = q[-1], q[-2]
+            cur_rev, prev_rev = norm(last.get("revenue")), norm(prev_q.get("revenue"))
+            qoq = (cur_rev/prev_rev-1)*100 if cur_rev and prev_rev else None
+            yoy = None
+            if len(q) >= 5:
+                yoy_prev = q[-5]
+                yoy_prev_rev = norm(yoy_prev.get("revenue"))
+                if cur_rev and yoy_prev_rev:
+                    yoy = (cur_rev/yoy_prev_rev-1)*100
+            nm_d = None
+            if last.get("net_margin") is not None and prev_q.get("net_margin") is not None:
+                nm_d = last.get("net_margin") - prev_q.get("net_margin")
+            if qoq is not None and qoq > 8 and (nm_d is None or nm_d > 0):
+                score += 1
+                reasons.append(f"QoQ+{qoq:.0f}%")
+            elif qoq is not None and qoq < -8:
+                score -= 1
+                reasons.append(f"QoQ{qoq:.0f}%")
+            elif qoq is not None and qoq > 5 and nm_d is not None and nm_d > 0:
+                score += 0.5
+                reasons.append(f"QoQ+{qoq:.0f}%")
+            if yoy is not None and yoy > 10:
+                score += 0.5
+                reasons.append(f"YoY+{yoy:.0f}%")
+            elif yoy is not None and yoy < -10:
+                score -= 0.5
+                reasons.append(f"YoY{yoy:.0f}%")
+        if has_m:
+            moms = []
+            for i in range(len(mm)-3, len(mm)):
+                if i>0 and mm[i].get("revenue") and mm[i-1].get("revenue"):
+                    moms.append((mm[i]["revenue"]/mm[i-1]["revenue"]-1)*100)
+            if moms:
+                avg_mom = sum(moms)/len(moms)
+                if avg_mom > 5:
+                    score += 0.5
+                    reasons.append(f"月均+{avg_mom:.0f}%")
+                elif avg_mom < -5:
+                    score -= 0.5
+                    reasons.append(f"月均{avg_mom:.0f}%")
+        score = max(0, min(4, round(score)))
+        # 對應燈號文字
+        mapping = {4:"轉強",3:"轉強",2:"震盪",1:"轉弱",0:"轉弱"}
+        reason = mapping[score]
+        if reasons:
+            reason += " " + " ".join(reasons[:2])
+        has_data = True
+        return score, reason, has_data
     except Exception:
-        pass
-    final = max(0, min(4, round(base_score + adj)))
-    # 若基底為虧損紅燈，不因季月強而直接轉綠，最多到橙
-    if base_score == 0 and final > 1:
-        final = 1
-        adj_reasons.append("年虧損上限橙")
-    mapping = {4:("🔵","blue","優異"),3:("🟢","green","良好"),2:("🟡","yellow","中性"),1:("🟠","orange","注意"),0:("🔴","red","警示")}
-    emoji, cls, _ = mapping[final]
-    # 組合原因：年報基底 + 季月加成
-    if adj_reasons:
-        reason = base_reason + "｜" + " ".join(adj_reasons[:2])
-    else:
-        reason = base_reason
-    return emoji, cls, reason
+        return 2, "無季月", False
+
+def decide_light(stock_id, latest, prev, m, m_prev):
+    # 雙燈號：年燈號(長線體質) / 季月燈號(短線動能)
+    ann_score, ann_reason = decide_annual(stock_id, m, m_prev)
+    mom_score, mom_reason, has_mom = decide_momentum(stock_id)
+    # 年燈號不因季月改變，季月獨立
+    mapping = {4:("🔵","blue"),3:("🟢","green"),2:("🟡","yellow"),1:("🟠","orange"),0:("🔴","red")}
+    ann_emoji, ann_cls = mapping[ann_score]
+    mom_emoji, mom_cls = mapping[mom_score] if has_mom else ("⚪","gray")
+    # 回傳雙燈號
+    return ann_emoji, ann_cls, mom_emoji, mom_cls, f"年{ann_reason}｜季月{mom_reason}" if has_mom else ann_reason
 
 def build_summary(stock_id, latest, prev, m, m_prev):
     if not m:
@@ -183,8 +182,11 @@ def build_summary(stock_id, latest, prev, m, m_prev):
 
 def generate_index_html(reports):
     report_rows = ""
-    for stock_id, company_name, filename, light_emoji, light_cls, light_title, summary in reports:
-        light_html = f'<span class="light {light_cls}" title="{light_title}">{light_emoji}</span>'
+    for stock_id, company_name, filename, ann_emoji, ann_cls, mom_emoji, mom_cls, light_title, summary in reports:
+        if mom_emoji == "⚪":
+            light_html = f'<span class="light {ann_cls}" title="{light_title}">{ann_emoji}</span>'
+        else:
+            light_html = f'<span class="light {ann_cls}" title="{light_title}">{ann_emoji}</span><span style="margin:0 2px; color:#a0aec0;">/</span><span class="light {mom_cls}" title="{light_title}">{mom_emoji}</span>'
         # summary 需 escape
         report_rows += f"""
         <tr>
@@ -249,12 +251,12 @@ def generate_index_html(reports):
     <div class="container">
         <div class="header">
             <h1>台股財務分析儀表板</h1>
-            <div class="subtitle">自動生成的三維財務分析報告總覽｜最後更新：{datetime.now().strftime('%Y-%m-%d %H:%M')}｜燈號依 ROE/淨利率/負債/流動/獲利趨勢綜合判定</div>
+            <div class="subtitle">自動生成的三維財務分析報告總覽｜最後更新：{datetime.now().strftime('%Y-%m-%d %H:%M')}｜燈號：左「年燈號」長線體質(ROE/淨利/負債) / 右「季月燈號」短線動能(QoQ/YoY/MoM)</div>
         </div>
 <table>
             <thead>
                 <tr>
-                    <th class="light-col">燈號</th>
+                    <th class="light-col" title="左：年燈號(長線體質) / 右：季月燈號(短線動能)">燈號<br><span style="font-size:0.7em; opacity:0.9;">年 / 季月</span></th>
                     <th>股票代碼</th>
                     <th>公司名稱</th>
                     <th class="summary-col">分析摘要</th>
@@ -288,15 +290,21 @@ def main():
             ld = load_metrics(stock_id)
             if ld[0] is None:
                 if stock_id == "8069":
-                    light_emoji, light_cls, light_title, summary = "🟢", "green", "良好", build_summary(stock_id, None, None, None, None)
+                    ann_emoji, ann_cls, mom_emoji, mom_cls, light_title = "🟢", "green", "⚪", "gray", "良好｜無季月"
+                    summary = build_summary(stock_id, None, None, None, None)
+                    light_emoji, light_cls = ann_emoji, ann_cls
+                    # For dual display, keep both
+                    reports.append((stock_id, company_name, file.name, ann_emoji, ann_cls, mom_emoji, mom_cls, light_title, summary))
+                    continue
                 else:
-                    light_emoji, light_cls, light_title, summary = "⚪", "gray", "無資料", "尚無摘要"
+                    reports.append((stock_id, company_name, file.name, "⚪", "gray", "⚪", "gray", "無資料", "尚無摘要"))
+                    continue
                 latest = prev = None
             else:
                 latest, prev, m, m_prev, j = ld
-                light_emoji, light_cls, light_title = decide_light(stock_id, latest, prev, m, m_prev)
+                ann_emoji, ann_cls, mom_emoji, mom_cls, light_title = decide_light(stock_id, latest, prev, m, m_prev)
                 summary = build_summary(stock_id, latest, prev, m, m_prev)
-            reports.append((stock_id, company_name, file.name, light_emoji, light_cls, light_title, summary))
+            reports.append((stock_id, company_name, file.name, ann_emoji, ann_cls, mom_emoji, mom_cls, light_title, summary))
     reports.sort(key=lambda x: x[0])
     html_content = generate_index_html(reports)
     output_file = reports_dir / 'index.html'
