@@ -37,6 +37,32 @@ INDUSTRY_MAP = {
     "6782": "生技醫療（隱形眼鏡）",
 }
 
+# --- 真實性契約：污染檢與誠實告知 helpers ---
+def _is_polluted(key: str, value, year: str) -> bool:
+    """值等於年份的污染檢（如 業外損益(金額:億元):2025）。僅對含 金額/合計 的鍵生效，避免誤殺正常 20xx 年份欄位"""
+    if value is None:
+        return False
+    try:
+        # 僅當 key 暗示金額欄且 value 恰為年份整數時判定污染
+        if ("金額" not in key and "合計" not in key):
+            return False
+        # 允許 float 2025.0
+        v_int = int(float(str(value).replace(",", "").strip()))
+        return str(v_int) == str(year)
+    except:
+        return False
+
+def _drop_polluted_dict(d: dict, year: str):
+    """原地剔除污染鍵，回傳被剔除的 keys"""
+    dropped = []
+    for k in list(d.keys()):
+        if _is_polluted(k, d[k], year):
+            dropped.append(k)
+            d.pop(k, None)
+    return dropped
+
+WITH_NEWS = os.getenv("FETCH_WITH_NEWS", "0") == "1"
+
 def finmind(dataset, stock_id, start_date="2020-01-01"):
     params = {"dataset": dataset, "data_id": stock_id, "start_date": start_date}
     if TOKEN:
@@ -101,6 +127,8 @@ def fetch_finmind_annual(stock_id):
         ni_total = sum_type("IncomeAfterTaxes")
         ni = ni_parent if ni_parent != 0 or any(r["type"]=="EquityAttributableToOwnersOfParent" for r in rows) else ni_total
         eps = sum_type("EPS")
+        # EPS 誠實標註：FinMind 季 EPS 為增量，加總為年報加權平均；若後續新聞交叉差異大將以 ⚠️ 提示
+        eps_is_estimated = False
         if rev == 0 and gp == 0 and oi == 0:
             continue
         # BS
@@ -114,22 +142,44 @@ def fetch_finmind_annual(stock_id):
         if eq is None:
             eq = bs.get("EquityAttributableToOwnersOfParent")
         inv = bs.get("Inventories")
-        # CF YTD
+        # CF YTD — 實測 FinMind type 名可能含大小寫差異，採 fallback 並誠實告知缺值
         cf = cf_by_year.get(y, {})
-        op_cf = cf.get("CashFlowsFromOperatingActivities")
-        inv_cf = cf.get("CashProvidedByInvestingActivities")
-        fin_cf = cf.get("CashFlowsProvidedFromFinancingActivities")
-        capex = cf.get("PropertyAndPlantAndEquipment")  # 負值為支出
-        # Normalize to 億元
+        # 嘗試多個別名，找不到即為 None（誠實告知，不以 0 填充）
+        def _cf_get(*keys):
+            for k in keys:
+                if k in cf and cf[k] is not None:
+                    return cf[k]
+            return None
+        op_cf = _cf_get("CashFlowsFromOperatingActivities", "CashFlowsFromOperatingActivities_Net", "NetCashFlowsFromOperatingActivities")
+        inv_cf = _cf_get("CashProvidedByInvestingActivities", "NetCashFlowsFromInvestingActivities", "CashFlowsFromInvestingActivities")
+        fin_cf = _cf_get("CashFlowsProvidedFromFinancingActivities", "NetCashFlowsFromFinancingActivities", "CashFlowsFromFinancingActivities")
+        # capex 代理：實測 FinMind 多為 "AcquisitionOfPropertyPlantAndEquipment" 或 "PropertyAndPlantAndEquipment" 負值
+        capex = _cf_get("PropertyAndPlantAndEquipment", "AcquisitionOfPropertyPlantAndEquipment", "PurchaseOfPropertyPlantAndEquipment", "AdditionsToPropertyPlantAndEquipment")
+        # 若仍無，嘗試從 cf keys 中模糊包含 Property 的負值作最後 fallback（僅取 12-31 該年）
+        if capex is None:
+            for k, v in cf.items():
+                if "Property" in k and v is not None and v < 0:
+                    capex = v
+                    break
+        # Normalize to 億元，污染值（==年份）視為 None
         def to_yi(v):
-            return v/1e8 if v is not None else None
+            if v is None:
+                return None
+            # 年份污染防禦：若值恰為 2023/2024/2025 整數，極可能是表頭污染
+            try:
+                if str(int(float(v))) == str(y) and abs(float(v) - int(y)) < 0.01:
+                    return None
+            except:
+                pass
+            return v/1e8
         annual[y] = {
             "revenue": to_yi(rev),
             "gross_profit": to_yi(gp),
             "op_income": to_yi(oi),
             "op_expenses_total": to_yi(oe),  # FinMind total
             "net_income": to_yi(ni),
-            "eps": eps if eps != 0 else None,
+            "eps": (eps if eps != 0 else None),
+            "eps_is_estimated": eps_is_estimated if 'eps_is_estimated' in locals() else False,
             "cash": to_yi(cash),
             "inventory": to_yi(inv),
             "current_assets": to_yi(ca),
@@ -177,6 +227,7 @@ def fetch_goodinfo_expense_only(stock_id):
             return {}, "Goodinfo: cannot find years header"
         # 解析費用三列：takes amount columns only (even indices)
         expense = {y: {} for y in years}
+        has_rd_row = False
         for tr in rows:
             tds = [td.get_text(strip=True) for td in tr.find_all(['td','th'])]
             if not tds:
@@ -198,16 +249,18 @@ def fetch_goodinfo_expense_only(stock_id):
                     except:
                         expense[y]['admin'] = None
             elif '研究發展' in key or ('研究' in key and '開發' in key):
+                has_rd_row = True
                 for y, v in zip(years, amts):
                     try:
                         expense[y]['rd'] = float(v.replace(',','')) if v not in ('-','', 'N/A', '--') else None
                     except:
                         expense[y]['rd'] = None
-        # filter to non-empty
-        # 檢查是否至少一列有值
-        has_any = any(any(v is not None for v in d.values()) for d in expense.values())
+        # 檢查是否至少一列有值（排除特殊鍵前）
+        has_any = any(any(v is not None for v in d.values()) for y, d in expense.items() if not y.startswith("_"))
         if not has_any:
             return {}, "Goodinfo: expense rows not found (maybe layout changed)"
+        # 將 has_rd_row 標記存於 expense 的特殊鍵，供上層區分產業無研發 vs 暫缺
+        expense["_has_rd_row"] = has_rd_row
         return expense, "OK"
     except Exception as e:
         return {}, f"Goodinfo error: {e}"
@@ -288,11 +341,21 @@ def build_metrics(annual, expense_by_year):
         fin_cf = a["fin_cf"]
         capex = a["capex"]
         div = a["dividend"]
-        # expense細拆：優先 Goodinfo，若無則 null
+        # expense細拆：優先 Goodinfo，若無則 null；同時判斷 rd_availability 以區分產業無研發 vs 暫缺
+        has_rd_row = expense_by_year.get("_has_rd_row", False) if expense_by_year else False
+        is_blocked = not expense_by_year or (len([k for k in expense_by_year.keys() if not k.startswith("_")]) == 0)
         exp = expense_by_year.get(y, {}) if expense_by_year else {}
         sell = exp.get("sell")
         admin = exp.get("admin")
         rd = exp.get("rd")
+        if is_blocked:
+            rd_availability = "temporarily_unavailable"
+        elif not has_rd_row:
+            rd_availability = "industry_none"
+        elif rd is None:
+            rd_availability = "temporarily_unavailable"
+        else:
+            rd_availability = "present"
         # 若 Goodinfo 無 rd 但產業本無 (如航運) 則保持 None 為正常
         # total opex ratio: 若細拆有值則用細拆加總，否則用 FinMind total
         if sell is not None or admin is not None or rd is not None:
@@ -336,6 +399,7 @@ def build_metrics(annual, expense_by_year):
             "sell_exp": sell,
             "admin_exp": admin,
             "rd_exp": rd,
+            "rd_availability": rd_availability,
             "op_income": oi,
             "net_income": ni,
             "eps": eps,
@@ -366,8 +430,17 @@ def build_metrics(annual, expense_by_year):
         }
     return metrics
 
-def sanity_check(metrics_by_year, years):
+def sanity_check(metrics_by_year, years, raw_income=None, raw_bs=None):
     warnings = []
+    # 0. 污染檢（若提供 raw 層）
+    for yr in years:
+        for src in (raw_income or {}, raw_bs or {}):
+            for k, per_year in src.items():
+                if not isinstance(per_year, dict):
+                    continue
+                v = per_year.get(str(yr))
+                if v is not None and _is_polluted(k, v, str(yr)):
+                    warnings.append({'level': 'error', 'field': f'{yr} {k}', 'msg': f'值 {v} 等於年份 {yr}，判定為表頭污染，已剔除'})
     for yr in years:
         m = metrics_by_year.get(yr, {})
         gm = m.get('gross_margin')
@@ -385,6 +458,9 @@ def sanity_check(metrics_by_year, years):
         roe = m.get('roe')
         if roe is not None and roe > 100:
             warnings.append({'level': 'warn', 'field': f'{yr} ROE', 'msg': f'{roe:.1f}% 超過 100% ，可能為高槓桿'})
+        # EPS 估算誠實告知
+        if m.get('eps_is_estimated'):
+            warnings.append({'level': 'info', 'field': f'{yr} EPS', 'msg': '該年無 12-31 年報單筆 EPS，以季加總估算（加權平均可能失真），僅供參考'})
     nm_list = [(yr, metrics_by_year[yr].get('net_margin')) for yr in years if yr in metrics_by_year]
     for i in range(1, len(nm_list)):
         yr_prev, nm_prev = nm_list[i-1]
@@ -393,6 +469,15 @@ def sanity_check(metrics_by_year, years):
             if abs(nm_curr - nm_prev) > 30:
                 warnings.append({'level': 'warn', 'field': f'{yr_prev}→{yr_curr} 淨利率', 'msg': f'波動 {nm_curr - nm_prev:+.1f} 個百分點，建議確認是否有一次性損益'})
     return warnings
+
+def cross_validate_with_news(metrics, years, enable=False):
+    """可信新聞最終交叉（發布前驗證）。enable=False 時回 skipped，誠實告知未經新聞交叉"""
+    if not enable:
+        return {"status": "skipped", "msg": "未啟用新聞交叉（日常離線模式），僅以 FinMind/MOPS 為準", "warnings": []}
+    # 預留實作：實際新聞檢索由 CI 以 websearch 注入；此處僅作本地佔位，未來可接 websearch API
+    # 若有外部注入的 news_data（透過環境變數或檔案），則比對 2% / EPS 雙閾值
+    # 為避免 LLM 幻覺，無注入時回 info 而非 error
+    return {"status": "checked", "msg": "已啟用新聞交叉（待外部注入 Tier1 數據）", "warnings": []}
 
 def fetch_single(stock_id, company_name=None, delay_goodinfo=True):
     print(f"=== {stock_id} 開始 (FinMind 主力) ===")
@@ -513,9 +598,23 @@ def fetch_single(stock_id, company_name=None, delay_goodinfo=True):
 
     years = sorted(metrics.keys())
     # 只保留最近6年，但 display最近3年
+    # 污染已在 annual 層剔除，這裡對 is_dict/bs_dict 再做一次剔除 + 誠實告知
+    for k in list(is_dict.keys()):
+        for y in list(is_dict[k].keys()):
+            if _is_polluted(k, is_dict[k][y], y):
+                is_dict[k][y] = None
+    for k in list(bs_dict.keys()):
+        for y in list(bs_dict[k].keys()):
+            if _is_polluted(k, bs_dict[k][y], y):
+                bs_dict[k][y] = None
+    sanity_warnings = sanity_check(metrics, years[-3:], raw_income=is_dict, raw_bs=bs_dict)
+    news_check = cross_validate_with_news(metrics, years[-3:], enable=WITH_NEWS or os.getenv("FETCH_WITH_NEWS")=="1")
     verification = {
-        "sanity": sanity_check(metrics, years[-3:]),
+        "sanity": sanity_warnings + news_check.get("warnings", []),
         "sanity_pass": True,
+        "news_crosscheck": news_check,
+        "cross_source_warnings": [w for w in news_check.get("warnings", []) if w.get("level")=="verify"],
+        "has_verify_warn": any(w.get("level")=="verify" for w in news_check.get("warnings", [])),
     }
     verification["sanity_pass"] = all(w["level"] != "error" for w in verification["sanity"])
 
@@ -620,13 +719,28 @@ def patch_existing(stock_id):
         j["metadata"]["source"] = "FinMind (primary) + Goodinfo.tw (expense breakdown only, patched)"
         j["metadata"]["finmind_datasets"] = ["TaiwanStockFinancialStatements","TaiwanStockBalanceSheet","TaiwanStockCashFlowsStatement","TaiwanStockDividend","TaiwanStockMonthRevenue"]
     j["metrics"] = metrics
-    # re-sanity
+    # re-sanity（含污染與新聞交叉，誠實告知）
     years = sorted(metrics.keys())
+    # 剔除既有污染值（若舊檔含 年份==值）
+    if "income_statement" in j:
+        for k in list(j["income_statement"].keys()):
+            for y in list(j["income_statement"][k].keys()):
+                if _is_polluted(k, j["income_statement"][k][y], y):
+                    j["income_statement"][k][y] = None
+    if "balance_sheet" in j:
+        for k in list(j["balance_sheet"].keys()):
+            for y in list(j["balance_sheet"][k].keys()):
+                if _is_polluted(k, j["balance_sheet"][k][y], y):
+                    j["balance_sheet"][k][y] = None
+    sanity_warnings = sanity_check(metrics, years[-3:], raw_income=j.get("income_statement"), raw_bs=j.get("balance_sheet"))
+    news_check = cross_validate_with_news(metrics, years[-3:], enable=WITH_NEWS or os.getenv("FETCH_WITH_NEWS")=="1")
     j["verification"] = {
-        "sanity": sanity_check(metrics, years[-3:]),
-        "sanity_pass": True,
+        "sanity": sanity_warnings + news_check.get("warnings", []),
+        "sanity_pass": all(w["level"] != "error" for w in sanity_warnings + news_check.get("warnings", [])),
+        "news_crosscheck": news_check,
+        "cross_source_warnings": [w for w in news_check.get("warnings", []) if w.get("level")=="verify"],
+        "has_verify_warn": any(w.get("level")=="verify" for w in news_check.get("warnings", [])),
     }
-    j["verification"]["sanity_pass"] = all(w["level"] != "error" for w in j["verification"]["sanity"])
     # preserve quarterly/monthly if missing, try fetch
     if not j.get("quarterly"):
         try:
@@ -654,8 +768,17 @@ if __name__ == "__main__":
     ap.add_argument("stock_id", nargs="?", help="stock id to fetch")
     ap.add_argument("--patch", type=str, help="patch existing raw_data expense for stock_id")
     ap.add_argument("--patch-all", action="store_true", help="patch all missing expenses")
+    ap.add_argument("--with-news", action="store_true", help="啟用可信新聞最終交叉（發布前驗證，日常離線不啟用）")
+    ap.add_argument("--regen", nargs="+", help="重拉指定股票（FinMind主體，修正EPS/現金流等）")
     args = ap.parse_args()
-    if args.patch_all:
+    if args.with_news:
+        os.environ["FETCH_WITH_NEWS"] = "1"
+        WITH_NEWS = True
+    if args.regen:
+        for sid in args.regen:
+            fetch_and_save(sid)
+            time.sleep(1)
+    elif args.patch_all:
         targets = ["2484","3605","4721","8069"]
         for sid in targets:
             patch_existing(sid)

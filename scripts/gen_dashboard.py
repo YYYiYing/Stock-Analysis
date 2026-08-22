@@ -110,10 +110,19 @@ canvas { max-width: 100% !important; display: block; }
 }"""
 
 def fmt(v, dp=0):
-    if v is None: return "-"
+    if v is None: return "— <span style='font-size:0.75em;color:#a0aec0'>資料暫缺</span>"
     return f"{v:,.{dp}f}"
 def fmt_pct(v, dp=1):
-    return "-" if v is None else f"{v:.{dp}f}%"
+    return "— <span style='font-size:0.75em;color:#a0aec0'>資料暫缺</span>" if v is None else f"{v:.{dp}f}%"
+def warn_icon(field, year, cross_warnings):
+    """若該 field+year 在 cross_source_warnings 中，回傳 ⚠️ 圖示與 tooltip，否則空字串"""
+    for w in (cross_warnings or []):
+        if field in w.get("field","") and str(year) in w.get("field",""):
+            msg = w.get("msg","").replace('"',"'")
+            url = w.get("news_url","")
+            tip = f"{msg} {url}" if url else msg
+            return f" <span class='verify-warn' title=\"{tip}\" style='cursor:help;color:#dd6b20;font-weight:700'>⚠️</span>"
+    return ""
 
 def trend(series, higher=True):
     vals=[v for v in series if v is not None]
@@ -172,11 +181,32 @@ def generate(sid):
     cl_neg=[ -v if v is not None else None for v in cl_series]
 
     fetched=md.get("fetched_at","2026-08-21")[:10]
-    sanity_badge='<span class="verify-badge">✅ 合理性檢查通過</span>' if ver.get("sanity_pass", True) else f'<span class="verify-badge" style="background:#fed7d7;color:#9b2c2c;">⚠️ {len(ver.get("sanity",[]))} 項警示</span>'
+    cross_warnings = ver.get("cross_source_warnings", []) + [w for w in ver.get("sanity",[]) if w.get("level")=="verify"]
+    has_verify = ver.get("has_verify_warn") or len(cross_warnings) > 0
+    news_status = ver.get("news_crosscheck", {}).get("status", "skipped")
+    news_msg = ver.get("news_crosscheck", {}).get("msg", "")
+    # 誠實告知：新聞未交叉時顯示中性標
+    if ver.get("sanity_pass", True) and not has_verify and news_status=="skipped":
+        sanity_badge='<span class="verify-badge" style="background:#ebf8ff;color:#2b6cb0;">✅ 合理性檢查通過｜未經新聞交叉（僅 FinMind/MOPS）</span>'
+    elif ver.get("sanity_pass", True) and not has_verify:
+        sanity_badge='<span class="verify-badge">✅ 合理性檢查通過</span>'
+    else:
+        # 區分 error vs verify
+        err_cnt = len([w for w in ver.get("sanity",[]) if w.get("level")=="error"])
+        verify_cnt = len(cross_warnings)
+        if verify_cnt>0:
+            sanity_badge=f'<span class="verify-badge" style="background:#fefcbf;color:#744210;">⚠️ {verify_cnt} 項待再查證</span>'
+        else:
+            sanity_badge=f'<span class="verify-badge" style="background:#fed7d7;color:#9b2c2c;">⚠️ {err_cnt or len(ver.get("sanity",[]))} 項警示</span>'
+    # 污染或估算的 info 級提示亦在 verify-bar 摺疊顯示
+    info_warnings = [w for w in ver.get("sanity",[]) if w.get("level")=="info"]
     mops=md.get("mops_url", f"https://mops.twse.com.tw/mops/web/t05st01?step=1&co_id={sid}&TYPEK=sii")
     gi=md.get("source_urls", {"income_statement": f"https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=IS_YEAR&STOCK_ID={sid}", "balance_sheet": f"https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=BS_YEAR&STOCK_ID={sid}", "cash_flow": f"https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=CF_YEAR&STOCK_ID={sid}"})
     supp=md.get("supplement_source")
     supp_note=(f'｜<span title="{supp.get("reason","")}">部分數據由 {supp.get("cash_flow","FinMind")} 補足</span>' if supp else "")
+    # 若該年 EPS 為估算（季加總），在 header 補充誠實告知
+    eps_estimated_years = [y for y in years if M[y].get("eps_is_estimated")]
+    eps_est_note = f"｜EPS 估算年：{','.join(eps_estimated_years)}（季加總，僅供參考）" if eps_estimated_years else ""
 
     rev_yoy=yoy("revenue")
     try: rev_cagr=((L("revenue")/M[years[0]]["revenue"])**0.5-1)*100
@@ -247,13 +277,28 @@ def generate(sid):
             body+=f"<tr{rc}><td>{label}</td>{tds}<td class=\"{cls}\">{txt}</td></tr>"
         return f'<table class="data-table"><thead><tr><th>項目</th>{th}<th>趨勢評估</th></tr></thead><tbody>{body}</tbody></table>'
 
+    # 選項B：保留研究發展列但改文案 — 產業無研發顯示「無此費用」，暫缺顯示「資料暫缺」
+    rd_vals_raw = g("rd_exp")
+    rd_display = []
+    for idx, y in enumerate(years):
+        v = rd_vals_raw[idx]
+        avail = M[y].get("rd_availability", "present" if v is not None else "temporarily_unavailable")
+        if avail == "industry_none":
+            rd_display.append("— <span style='font-size:0.75em;color:#718096'>無此費用</span> <span style='font-size:0.72em;color:#a0aec0' title='本產業無獨立研發費用列，屬正常'>產業特性</span>")
+        elif v is None and avail == "temporarily_unavailable":
+            rd_display.append("— <span style='font-size:0.75em;color:#a0aec0'>資料暫缺</span> <span style='font-size:0.72em;color:#dd6b20' title='Goodinfo 限流暫缺，次日可重試'>限流</span>")
+        elif v is None:
+            rd_display.append("— <span style='font-size:0.75em;color:#a0aec0'>資料暫缺</span>")
+        else:
+            rd_display.append(fmt(v))
+    # 圖表費用結構：若全為 industry_none 則該 dataset 在圖表仍保留但值為 null（視覺為空），此處表格已以文案區分
     t1=table([
         ("營業收入 (億元)", g("revenue"), lambda v: fmt(v), rev_trend(g("revenue")), ""),
         ("營業成本 (億元)", cost_series, lambda v: fmt(v), trend(cost_series, higher=False), ""),
         ("營業毛利 (億元)", g("gross_profit"), lambda v: fmt(v), trend(g("gross_profit")), ""),
         ("推銷費用 (億元)", g("sell_exp"), lambda v: fmt(v), trend(g("sell_exp"), higher=False), ""),
         ("管理費用 (億元)", g("admin_exp"), lambda v: fmt(v), trend(g("admin_exp"), higher=False), ""),
-        ("研究發展費用 (億元)", g("rd_exp"), lambda v: fmt(v), trend(g("rd_exp")), ""),
+        ("研究發展費用 (億元)", rd_display, lambda v: v, trend(g("rd_exp")), ""),
         ("營業利益 (億元)", g("op_income"), lambda v: fmt(v), trend(g("op_income")), ""),
         ("毛利率", g("gross_margin"), lambda v: fmt_pct(v), trend(g("gross_margin")), "total-row"),
         ("營業利益率", g("op_margin"), lambda v: fmt_pct(v), trend(g("op_margin")), "total-row"),
@@ -484,6 +529,25 @@ def generate(sid):
     profit_charts="".join(charts[4:8])
     fin_charts="".join(charts[8:12])
 
+    # 構建警告/待查證清單（誠實告知 + ⚠️）
+    warn_items = []
+    for w in ver.get("sanity", []):
+        if w.get("level") in ("error","warn","verify"):
+            icon = "⚠️" if w.get("level") in ("error","verify") else "ℹ️"
+            url = w.get("news_url","")
+            link = f' <a href="{url}" target="_blank">新聞來源</a>' if url else ""
+            warn_items.append(f"<li>{icon} <b>{w.get('field')}</b>: {w.get('msg')}{link}</li>")
+    # 去重：info 級的 EPS 估算也顯示
+    for w in ver.get("sanity", []):
+        if w.get("level")=="info":
+            warn_items.append(f"<li>ℹ️ <b>{w.get('field')}</b>: {w.get('msg')}</li>")
+    warn_html = ""
+    if warn_items:
+        warn_html = f'<div class="insight-box" style="background:#fffbeb;border-color:#fbd38d;margin:12px 32px 0 32px;"><h3>⚠️ 數據異常 / 待再查證</h3><ul>{"".join(warn_items)}</ul><div style="margin-top:8px;font-size:0.80rem;color:#744210;">FinMind/Goodinfo 與新聞矛盾時，任一方可能誤植，該數據後已加 ⚠️，僅供參考，請再查證 MOPS 原始申報。</div></div>'
+        # 前端表格中對應欄位加 ⚠️（透過 CSS tooltip 已由 warn_icon 處理，此處為總覽）
+    # eps 估算年份補充說明已在 verify-bar 旁，額外在 subtitle 附加
+    subtitle_extra = f"{supp_note}{eps_est_note}"
+
     html=f"""<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -494,8 +558,9 @@ def generate(sid):
 <style>{CSS}</style>
 </head>
 <body>
-<div class="header"><div><h1>{name} ({sid}) 財務分析儀表板</h1><div class="subtitle">資料來源：Goodinfo.tw{supp_note}｜分析期間：{years[0]} – {years[-1]}｜金額單位：億元 (NTD)</div></div><div class="badge">🏢 {INDUSTRY.get(sid,'上市櫃公司')}</div></div>
+<div class="header"><div><h1>{name} ({sid}) 財務分析儀表板</h1><div class="subtitle">資料來源：FinMind 主力 + Goodinfo 費用細拆{subtitle_extra}｜分析期間：{years[0]} – {years[-1]}｜金額單位：億元 (NTD)</div></div><div class="badge">🏢 {INDUSTRY.get(sid,'上市櫃公司')}</div></div>
 <div class="verify-bar">{sanity_badge}<span>抓取時間：{fetched}</span><a href="{gi['income_statement']}" target="_blank">🔍 Goodinfo 原始數據</a><a href="{mops}" target="_blank">📋 MOPS 官方申報</a><a href="index.html">← 回總覽</a></div>
+{warn_html}
 <div class="tabs"><div class="tab active" onclick="switchTab('ops')">📊 經營分析</div><div class="tab" onclick="switchTab('profit')">💰 獲利分析</div><div class="tab" onclick="switchTab('finance')">🏦 財務健全度</div>{momentum_tab}</div>
 <div id="ops" class="tab-content active">{k1}<div class="insight-box"><h3>🔍 經營亮點</h3>{ins1}</div><div class="charts-grid">{ops_charts}</div><div class="table-wrap">{t1}</div></div>
 <div id="profit" class="tab-content">{k2}<div class="insight-box"><h3>🔍 獲利亮點</h3>{ins2}</div><div class="charts-grid">{profit_charts}</div><div class="table-wrap">{t2}</div></div>
@@ -511,9 +576,14 @@ function switchTab(name) {{
 </script>
 </body>
 </html>"""
-    out=os.path.join(REPORTS, f"{sid}_{name}_analysis.html")
+    # 檔名淨化：* 等 Windows 非法字元移除，避免 5904 寶雅* 寫入失敗並保持檔名穩定
+    import re
+    safe_name = re.sub(r'[\\/*?:"<>|*]', "", name).strip()
+    # 去除多餘空白與尾端底線
+    safe_name = safe_name.strip().strip("_")
+    out=os.path.join(REPORTS, f"{sid}_{safe_name}_analysis.html")
     open(out,"w",encoding="utf-8").write(html)
-    print(f"OK {sid}_{name} ({len(html):,} bytes)")
+    print(f"OK {sid}_{safe_name} ({len(html):,} bytes)")
 
 if __name__=="__main__":
     import sys
