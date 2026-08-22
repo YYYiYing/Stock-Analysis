@@ -134,6 +134,8 @@ def rev_trend(series):
 def chart_script(cid, config):
     s=json.dumps(config, ensure_ascii=False)
     s=s.replace('"__PCT__"', "v=>v+'%'")
+    s=s.replace('"__SEGMENT_MOM__"', "ctx => { const y0=ctx.p0.parsed.y; const y1=ctx.p1.parsed.y; if(y0!==null&&y1!==null){ if(y0>=0&&y1>=0) return '#38a169'; if(y0<0&&y1<0) return '#e53e3e'; } return '#dd6b20'; }")
+    s=s.replace('"__TOOLTIP_LABEL__"', "function(ctx){ let label=ctx.dataset.label||''; if(label) label+=': '; if(ctx.parsed.y!==null){ if(ctx.dataset.label.includes('MoM')) label+=ctx.parsed.y.toFixed(1)+'%'; else if(ctx.dataset.label.includes('營收')) label+=ctx.parsed.y.toFixed(2)+'億'; else label+=ctx.parsed.y; } return label; }")
     return f"<script>new Chart(document.getElementById('{cid}'),{s});</script>"
 def wrap(cid, title, config):
     return f'<div class="chart-card"><div class="chart-title">{title}</div><div class="chart-container"><canvas id="{cid}"></canvas></div></div>' + chart_script(cid, config)
@@ -370,8 +372,29 @@ def generate(sid):
             for i in range(len(m_rev)):
                 if i==0 or m_rev[i] is None or m_rev[i-1] in (None,0): mom.append(None)
                 else: mom.append((m_rev[i]/m_rev[i-1]-1)*100)
+            # MoM 點位顏色：正值綠 / 負值紅 / 首期透明，直觀區分
+            mom_point_bg = ["#38a169" if (v or 0) > 0 else "#e53e3e" if (v or 0) < 0 else "rgba(0,0,0,0)" for v in mom]
+            mom_point_border = mom_point_bg
             scales={"x":{"grid":{"display":False}},"y":{"grid":{"color":"rgba(0,0,0,0.05)"},"title":{"display":True,"text":"億元"}},"y2":{"position":"right","grid":{"display":False},"ticks":{"callback":"__PCT__"}}}
-            cfg={"type":"bar","data":{"labels":m_labels,"datasets":[{"label":"月營收 (億元)","data":m_rev,"backgroundColor":"rgba(49,130,206,0.2)","borderColor":"#3182ce","borderWidth":1,"yAxisID":"y"},{"label":"MoM (%)","data":mom,"type":"line","borderColor":"#dd6b20","backgroundColor":"#dd6b20","pointRadius":3,"tension":0.3,"yAxisID":"y2"}]},"options":{**common, "scales":scales}}
+            cfg={
+                "type":"bar",
+                "data":{
+                    "labels":m_labels,
+                    "datasets":[
+                        {"label":"月營收 (億元)","data":m_rev,"backgroundColor":"rgba(49,130,206,0.2)","borderColor":"#3182ce","borderWidth":1,"yAxisID":"y"},
+                        {"label":"MoM (%)","data":mom,"type":"line","borderColor":"#dd6b20","backgroundColor":"#dd6b20","pointBackgroundColor":mom_point_bg,"pointBorderColor":mom_point_border,"pointRadius":4,"pointHoverRadius":6,"borderWidth":2,"tension":0.3,"yAxisID":"y2","segment":{"borderColor":"__SEGMENT_MOM__"}}
+                    ]
+                },
+                "options":{
+                    **common,
+                    "scales":scales,
+                    "interaction":{"mode":"index","intersect":False},
+                    "plugins":{
+                        "legend":{"position":"bottom"},
+                        "tooltip":{"mode":"index","intersect":False,"callbacks":{"label":"__TOOLTIP_LABEL__"}}
+                    }
+                }
+            }
             m_charts.append(wrap("mmRevChart","月營收與 MoM（近12月）",cfg))
         q=j.get("quarterly",[])
         if q:
