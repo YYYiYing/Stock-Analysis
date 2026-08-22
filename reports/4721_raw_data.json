@@ -49,6 +49,26 @@
    "2023": -0.31999999999999995,
    "2024": 3.3600000000000003,
    "2025": 3.0100000000000002
+  },
+  "推銷費用": {
+   "2023": 0.51,
+   "2024": 0.66,
+   "2025": 0.64
+  },
+  "管理費用": {
+   "2023": 0.56,
+   "2024": 0.72,
+   "2025": 0.79
+  },
+  "研究發展費用": {
+   "2023": 0.15,
+   "2024": 0.12,
+   "2025": 0.19
+  },
+  "營業費用": {
+   "2023": 1.22,
+   "2024": 1.5,
+   "2025": 1.62
   }
  },
  "balance_sheet": {
@@ -119,9 +139,9 @@
   "2023": {
    "revenue": 23.16364,
    "gross_profit": 2.34066,
-   "sell_exp": null,
-   "admin_exp": null,
-   "rd_exp": null,
+   "sell_exp": 0.51,
+   "admin_exp": 0.56,
+   "rd_exp": 0.15,
    "op_income": 1.15074,
    "net_income": -0.24543,
    "eps": -0.31999999999999995,
@@ -138,10 +158,10 @@
    "capex": null,
    "dividend": 0.0,
    "gross_margin": 10.10488852356538,
-   "sell_ratio": null,
-   "admin_ratio": null,
-   "rd_ratio": null,
-   "total_opex_ratio": 5.3036569382014225,
+   "sell_ratio": 2.201726498944035,
+   "admin_ratio": 2.417582038056195,
+   "rd_ratio": 0.6475666173364808,
+   "total_opex_ratio": 5.26687515433671,
    "op_margin": 4.967872061558546,
    "net_margin": -1.0595484992859499,
    "current_ratio": 229.32830380311736,
@@ -153,9 +173,9 @@
   "2024": {
    "revenue": 21.21654,
    "gross_profit": 4.15062,
-   "sell_exp": null,
-   "admin_exp": null,
-   "rd_exp": null,
+   "sell_exp": 0.66,
+   "admin_exp": 0.72,
+   "rd_exp": 0.12,
    "op_income": 2.68598,
    "net_income": 2.51917,
    "eps": 3.3600000000000003,
@@ -172,10 +192,10 @@
    "capex": null,
    "dividend": 2.36,
    "gross_margin": 19.56313329129066,
-   "sell_ratio": null,
-   "admin_ratio": null,
-   "rd_ratio": null,
-   "total_opex_ratio": 7.078345479517395,
+   "sell_ratio": 3.1107805513999933,
+   "admin_ratio": 3.393578783345447,
+   "rd_ratio": 0.5655964638909078,
+   "total_opex_ratio": 7.0699557986363475,
    "op_margin": 12.659839917347504,
    "net_margin": 11.873613699500485,
    "current_ratio": 248.62430581488164,
@@ -187,9 +207,9 @@
   "2025": {
    "revenue": 25.30662,
    "gross_profit": 4.631,
-   "sell_exp": null,
-   "admin_exp": null,
-   "rd_exp": null,
+   "sell_exp": 0.64,
+   "admin_exp": 0.79,
+   "rd_exp": 0.19,
    "op_income": 3.01036,
    "net_income": 2.25723,
    "eps": 3.0100000000000002,
@@ -206,10 +226,10 @@
    "capex": null,
    "dividend": 2.3,
    "gross_margin": 18.29955956188539,
-   "sell_ratio": null,
-   "admin_ratio": null,
-   "rd_ratio": null,
-   "total_opex_ratio": 6.404016024265588,
+   "sell_ratio": 2.528982535004675,
+   "admin_ratio": 3.121712816646396,
+   "rd_ratio": 0.7507916900795129,
+   "total_opex_ratio": 6.401487041730583,
    "op_margin": 11.895543537619801,
    "net_margin": 8.91952382420094,
    "current_ratio": 192.2741900275331,
@@ -388,15 +408,13 @@
   ],
   "currency": "TWD 億元",
   "supplement_source": {
-   "primary": "FinMind TaiwanStockFinancialStatements/BalanceSheet/CashFlowsStatement/MonthRevenue",
-   "backup": "Goodinfo.tw expense breakdown",
-   "note": "FinMind 600/hr, Goodinfo expense breakdown fallback",
-   "backup_status": "Goodinfo blocked, expense breakdown null"
+   "expense_breakdown": "Goodinfo.tw IS_YEAR (single request, sell/admin/rd only)",
+   "status": "OK",
+   "patched_at": "2026-08-22T13:56:38+08:00"
   }
  },
  "verification": {
   "sanity": [],
-  "sanity_pass": true,
-  "incomplete": []
+  "sanity_pass": true
  }
 }

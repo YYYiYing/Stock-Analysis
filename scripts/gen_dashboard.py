@@ -19,6 +19,8 @@ INDUSTRY = {
     "5904": "零售通路（生活百貨）",
     "2484": "電子零組件（石英元件）",
     "8069": "光電業",
+    "4721": "化學（特用化學）",
+    "6782": "生技醫療（隱形眼鏡）",
 }
 
 # 與 8069 完全相同的 CSS + 行動裝置擴充
@@ -139,7 +141,8 @@ def wrap(cid, title, config):
 def generate(sid):
     j=json.load(open(os.path.join(REPORTS, f"{sid}_raw_data.json"), encoding="utf-8"))
     name=j.get("company", sid)
-    years=sorted(j["years"][:3])
+    # 兼容新舊 years 排序：舊檔為降冪['2025','2024',...]，新檔為升冪['2020',...,'2026']，一律取最近三年
+    years=sorted(j["years"])[-3:]
     M=j["metrics"]
     md=j.get("metadata",{})
     ver=j.get("verification", {"sanity_pass": True, "sanity": []})
