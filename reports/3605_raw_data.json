@@ -166,11 +166,165 @@
   "currency": "TWD 億元",
   "supplement_source": {
    "cash_flow": "FinMind TaiwanStockFinancialStatements/BalanceSheet/CashFlowsStatement",
-   "reason": "Goodinfo 限流，改用 FinMind 官方財報"
+   "reason": "Goodinfo 限流，改用 FinMind 官方財報",
+   "quarterly": "FinMind TaiwanStockFinancialStatements",
+   "monthly": "FinMind TaiwanStockMonthRevenue"
   }
  },
  "verification": {
   "sanity": [],
   "sanity_pass": true
- }
+ },
+ "quarterly": [
+  {
+   "date": "2024-09-30",
+   "label": "2024Q3",
+   "revenue": 2688732000.0,
+   "gross_profit": 684180000.0,
+   "net_income": 129507000.0,
+   "eps": 0.96,
+   "gross_margin": 25.446195455701798,
+   "net_margin": 4.816657071065468,
+   "qoq": null
+  },
+  {
+   "date": "2024-12-31",
+   "label": "2024Q4",
+   "revenue": 2684398000.0,
+   "gross_profit": 669577000.0,
+   "net_income": 144742000.0,
+   "eps": 1.03,
+   "gross_margin": 24.943283373031868,
+   "net_margin": 5.391972427337526,
+   "qoq": -0.1611912232234336
+  },
+  {
+   "date": "2025-03-31",
+   "label": "2025Q1",
+   "revenue": 2577280000.0,
+   "gross_profit": 636453000.0,
+   "net_income": 201875000.0,
+   "eps": 1.37,
+   "gross_margin": 24.694755711447726,
+   "net_margin": 7.832870312888006,
+   "qoq": -3.9903918867470467
+  },
+  {
+   "date": "2025-06-30",
+   "label": "2025Q2",
+   "revenue": 2787017000.0,
+   "gross_profit": 736245000.0,
+   "net_income": 101349000.0,
+   "eps": 0.67,
+   "gross_margin": 26.41695404082573,
+   "net_margin": 3.6364686688312267,
+   "qoq": 8.13792059846039
+  },
+  {
+   "date": "2025-09-30",
+   "label": "2025Q3",
+   "revenue": 2788110000.0,
+   "gross_profit": 729435000.0,
+   "net_income": 223912000.0,
+   "eps": 1.47,
+   "gross_margin": 26.162346535825343,
+   "net_margin": 8.03096004103138,
+   "qoq": 0.03921755769700219
+  },
+  {
+   "date": "2025-12-31",
+   "label": "2025Q4",
+   "revenue": 2707150000.0,
+   "gross_profit": 721548000.0,
+   "net_income": 134089000.0,
+   "eps": 0.84,
+   "gross_margin": 26.653417801008437,
+   "net_margin": 4.9531426038453725,
+   "qoq": -2.903759177363874
+  },
+  {
+   "date": "2026-03-31",
+   "label": "2026Q1",
+   "revenue": 2821542000.0,
+   "gross_profit": 693877000.0,
+   "net_income": 107665000.0,
+   "eps": 0.67,
+   "gross_margin": 24.592120195269114,
+   "net_margin": 3.8158212778686265,
+   "qoq": 4.225550856066351
+  },
+  {
+   "date": "2026-06-30",
+   "label": "2026Q2",
+   "revenue": 3350348000.0,
+   "gross_profit": 858991000.0,
+   "net_income": 200775000.0,
+   "eps": 1.22,
+   "gross_margin": 25.638859008079162,
+   "net_margin": 5.99266106088084,
+   "qoq": 18.741737673938587
+  }
+ ],
+ "monthly": [
+  {
+   "date": "2025-09",
+   "revenue": 9.3579,
+   "mom": null
+  },
+  {
+   "date": "2025-10",
+   "revenue": 9.63172,
+   "mom": 2.9260838435973824
+  },
+  {
+   "date": "2025-11",
+   "revenue": 8.73679,
+   "mom": -9.291486878771394
+  },
+  {
+   "date": "2025-12",
+   "revenue": 9.22509,
+   "mom": 5.589009235657505
+  },
+  {
+   "date": "2026-01",
+   "revenue": 9.10962,
+   "mom": -1.2516951054136083
+  },
+  {
+   "date": "2026-02",
+   "revenue": 10.58355,
+   "mom": 16.17992847122054
+  },
+  {
+   "date": "2026-03",
+   "revenue": 7.81391,
+   "mom": -26.16929102238852
+  },
+  {
+   "date": "2026-04",
+   "revenue": 9.81796,
+   "mom": 25.647211191324182
+  },
+  {
+   "date": "2026-05",
+   "revenue": 11.24603,
+   "mom": 14.545486027647293
+  },
+  {
+   "date": "2026-06",
+   "revenue": 11.08233,
+   "mom": -1.4556247849240922
+  },
+  {
+   "date": "2026-07",
+   "revenue": 11.17512,
+   "mom": 0.8372788032841472
+  },
+  {
+   "date": "2026-08",
+   "revenue": 11.54175,
+   "mom": 3.2807701393810618
+  }
+ ]
 }

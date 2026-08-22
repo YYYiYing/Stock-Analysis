@@ -186,7 +186,7 @@ def generate_index_html(reports):
         if mom_emoji == "⚪":
             light_html = f'<span class="light {ann_cls}" title="{light_title}">{ann_emoji}</span>'
         else:
-            light_html = f'<span class="light {ann_cls}" title="{light_title}">{ann_emoji}</span><span style="margin:0 2px; color:#a0aec0;">/</span><span class="light {mom_cls}" title="{light_title}">{mom_emoji}</span>'
+            light_html = f'<span class="light {ann_cls}" title="{light_title}">{ann_emoji}</span><span class="light {mom_cls}" title="{light_title}" style="margin-left:4px;">{mom_emoji}</span>'
         # summary 需 escape
         report_rows += f"""
         <tr>
