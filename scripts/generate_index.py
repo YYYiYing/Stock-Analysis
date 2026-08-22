@@ -217,7 +217,7 @@ def generate_index_html(reports):
         .stat-label {{ font-size: 0.85rem; color: #718096; margin-top: 4px; }}
         table {{ width: 100%; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-collapse: collapse; }}
         th {{ background: #2b6cb0; color: white; padding: 14px 16px; text-align: left; font-weight: 600; font-size: 0.88rem; white-space: nowrap; }}
-        th.light-col {{ width: 56px; text-align: center; }}
+        th.light-col {{ width: 110px; min-width: 110px; text-align: center; }}
         th.summary-col {{ min-width: 240px; }}
         td {{ padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 0.88rem; }}
         tr:hover td {{ background: #f7fafc; }}
@@ -225,7 +225,7 @@ def generate_index_html(reports):
         a:hover {{ text-decoration: underline; }}
         .btn {{ background: #3182ce; color: white; padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; display: inline-block; }}
         .btn:hover {{ background: #2b6cb0; text-decoration: none; }}
-        .light-cell {{ text-align: center; font-size: 1.25rem; }}
+        .light-cell {{ text-align: center; font-size: 1.25rem; white-space: nowrap; }}
         .light {{ display: inline-block; width: 32px; height: 32px; line-height: 32px; border-radius: 50%; text-align: center; font-size: 1.05rem; }}
         .light.red {{ background: #fed7d7; }}
         .light.orange {{ background: #feebc8; }}
