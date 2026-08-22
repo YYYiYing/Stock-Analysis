@@ -267,11 +267,11 @@ def generate_index_html(reports):
             </tbody>
         </table>
         <div class="legend">
-            <span><i style="background:#bee3f8"></i> 🔵優異</span>
-            <span><i style="background:#c6f6d5"></i> 🟢良好</span>
-            <span><i style="background:#fefcbf"></i> 🟡中性</span>
-            <span><i style="background:#feebc8"></i> 🟠注意</span>
-            <span><i style="background:#fed7d7"></i> 🔴警示</span>
+            <span>🔵 優異</span>
+            <span>🟢 良好</span>
+            <span>🟡 中性</span>
+            <span>🟠 注意</span>
+            <span>🔴 警示</span>
         </div>
         <div class="footer">資料來源：Goodinfo.tw｜分析期間：最近三年｜金額單位：億元 (NTD)｜點擊代碼/名稱查看三維儀表板</div>
     </div>
