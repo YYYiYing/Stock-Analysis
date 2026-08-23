@@ -2,161 +2,375 @@
  "stock_id": "4721",
  "company": "美琪瑪",
  "years": [
-  "2025",
-  "2024",
-  "2023",
-  "2022",
+  "2020",
   "2021",
-  "2020"
+  "2022",
+  "2023",
+  "2024",
+  "2025"
  ],
  "income_statement": {
   "營業收入": {
+   "2020": 22.34584,
+   "2021": 41.26416,
+   "2022": 52.71498,
    "2023": 23.16364,
    "2024": 21.21654,
    "2025": 25.30662
   },
   "營業成本": {
+   "2020": 19.710189999999997,
+   "2021": 35.75002,
+   "2022": 47.60738,
    "2023": 20.82298,
    "2024": 17.06592,
    "2025": 20.67562
   },
   "營業毛利": {
+   "2020": 2.63565,
+   "2021": 5.51414,
+   "2022": 5.1076,
    "2023": 2.34066,
    "2024": 4.15062,
    "2025": 4.631
   },
-  "營業利益": {
-   "2023": 1.15074,
-   "2024": 2.68598,
-   "2025": 3.01036
-  },
-  "稅前淨利": {
-   "2023": 0.04937,
-   "2024": 2.83165,
-   "2025": 2.96502
-  },
-  "所得稅費用": {
-   "2023": 0.2948,
-   "2024": 0.31248,
-   "2025": 0.70779
-  },
-  "稅後淨利": {
-   "2023": -0.24543,
-   "2024": 2.51917,
-   "2025": 2.25723
-  },
-  "每股稅後盈餘(元)": {
-   "2023": -0.31999999999999995,
-   "2024": 3.3600000000000003,
-   "2025": 3.0100000000000002
-  },
   "推銷費用": {
+   "2020": 0.34,
+   "2021": 0.53,
+   "2022": 0.59,
    "2023": 0.51,
    "2024": 0.66,
    "2025": 0.64
   },
   "管理費用": {
+   "2020": 0.58,
+   "2021": 0.75,
+   "2022": 0.7,
    "2023": 0.56,
    "2024": 0.72,
    "2025": 0.79
   },
   "研究發展費用": {
+   "2020": 0.15,
+   "2021": 0.11,
+   "2022": 0.14,
    "2023": 0.15,
    "2024": 0.12,
    "2025": 0.19
   },
   "營業費用": {
+   "2020": 1.0699999999999998,
+   "2021": 1.3900000000000001,
+   "2022": 1.4300000000000002,
    "2023": 1.22,
    "2024": 1.5,
    "2025": 1.62
+  },
+  "營業利益": {
+   "2020": 1.51426,
+   "2021": 4.17068,
+   "2022": 3.61964,
+   "2023": 1.15074,
+   "2024": 2.68598,
+   "2025": 3.01036
+  },
+  "稅前淨利": {
+   "2020": 1.61058,
+   "2021": 4.60325,
+   "2022": 4.8127,
+   "2023": 0.04937,
+   "2024": 2.83165,
+   "2025": 2.96502
+  },
+  "所得稅費用": {
+   "2020": 0.3779,
+   "2021": 0.99691,
+   "2022": 0.99945,
+   "2023": 0.2948,
+   "2024": 0.31248,
+   "2025": 0.70779
+  },
+  "稅後淨利": {
+   "2020": 1.23268,
+   "2021": 3.60634,
+   "2022": 3.81325,
+   "2023": -0.24543,
+   "2024": 2.51917,
+   "2025": 2.25723
+  },
+  "每股稅後盈餘(元)": {
+   "2020": 1.64,
+   "2021": 4.8100000000000005,
+   "2022": 5.08,
+   "2023": -0.31999999999999995,
+   "2024": 3.36,
+   "2025": 3.0100000000000002
   }
  },
  "balance_sheet": {
   "現金及約當現金": {
+   "2020": 2.56205,
+   "2021": 4.32593,
+   "2022": 3.6648,
    "2023": 1.82082,
    "2024": 4.66188,
    "2025": 4.56888
   },
   "存貨": {
+   "2020": 2.42389,
+   "2021": 4.74634,
+   "2022": 6.27745,
    "2023": 3.57092,
    "2024": 3.3784,
    "2025": 6.1989
   },
   "流動資產合計": {
+   "2020": 10.73003,
+   "2021": 19.31623,
+   "2022": 19.65459,
    "2023": 11.92193,
    "2024": 14.51414,
    "2025": 16.38303
   },
   "流動負債合計": {
+   "2020": 4.08789,
+   "2021": 10.58994,
+   "2022": 9.96432,
    "2023": 5.19863,
    "2024": 5.83778,
    "2025": 8.52066
   },
-  "資產總額": {
-   "2023": 16.46918,
-   "2024": 19.00604,
-   "2025": 22.1437
-  },
   "負債總額": {
+   "2020": 4.12192,
+   "2021": 10.63366,
+   "2022": 10.01853,
    "2023": 5.2518,
    "2024": 5.89205,
    "2025": 8.58433
   },
   "股東權益總額": {
+   "2020": 11.64522,
+   "2021": 13.81386,
+   "2022": 15.0121,
    "2023": 11.21738,
    "2024": 13.11399,
    "2025": 13.55937
+  },
+  "資產總額": {
+   "2020": 15.76714,
+   "2021": 24.44752,
+   "2022": 25.03063,
+   "2023": 16.46918,
+   "2024": 19.00604,
+   "2025": 22.1437
   }
  },
  "cash_flow": {
   "營業活動之淨現金流入（出）": {
+   "2020": 3.77594,
+   "2021": -3.16118,
+   "2022": 3.55347,
    "2023": 6.20598,
    "2024": 2.97494,
    "2025": 1.85759
   },
   "投資活動之淨現金流入（出）": {
+   "2020": -0.25414,
+   "2021": 0.28922,
+   "2022": -0.6395,
    "2023": -0.62211,
    "2024": -0.29634,
    "2025": -0.46296
   },
   "融資活動之淨現金流入（出）": {
+   "2020": -5.49257,
+   "2021": 4.95616,
+   "2022": -3.73353,
    "2023": -7.35441,
    "2024": -0.01024,
    "2025": -1.37099
   },
   "固定資產（增加）減少": {
+   "2020": -0.10468,
+   "2021": -0.12835,
+   "2022": -0.30048,
+   "2023": -0.1069,
+   "2024": -0.09811,
+   "2025": -0.12331
+  },
+  "發放現金股利": {
+   "2020": null,
+   "2021": null,
+   "2022": null,
    "2023": null,
    "2024": null,
    "2025": null
-  },
-  "發放現金股利": {
-   "2023": 0.0,
-   "2024": 2.36,
-   "2025": 2.3
   }
  },
  "metrics": {
+  "2020": {
+   "revenue": 22.34584,
+   "gross_profit": 2.63565,
+   "sell_exp": 0.34,
+   "admin_exp": 0.58,
+   "rd_exp": 0.15,
+   "rd_availability": "present",
+   "op_income": 1.51426,
+   "net_income": 1.23268,
+   "eps": 1.64,
+   "eps_is_estimated": false,
+   "cash": 2.56205,
+   "inventory": 2.42389,
+   "current_assets": 10.73003,
+   "current_liabilities": 4.08789,
+   "total_assets": 15.76714,
+   "total_liabilities": 4.12192,
+   "equity": 11.64522,
+   "op_cf": 3.77594,
+   "inv_cf": -0.25414,
+   "fin_cf": -5.49257,
+   "capex": -0.10468,
+   "dividend": 1.39,
+   "dividend_cash": 1.39,
+   "dividend_stock": 0.0,
+   "dividend_yield": 1.4978448275862069,
+   "dividend_yield_price": 92.8,
+   "dividend_yield_price_date": "2021-07-22",
+   "dividend_yield_is_estimated": false,
+   "dividend_ex_cash_date": "2021-07-23",
+   "dividend_ex_stock_date": null,
+   "gross_margin": 11.79481281527121,
+   "sell_ratio": 1.5215359995417492,
+   "admin_ratio": 2.5955614109829837,
+   "rd_ratio": 0.6712658821507717,
+   "total_opex_ratio": 4.788363292675505,
+   "op_margin": 6.776473831370851,
+   "net_margin": 5.5163735173974215,
+   "current_ratio": 262.4833349233957,
+   "debt_ratio": 26.14247098712893,
+   "roe": 10.585287353952952,
+   "roa": 7.818031678541574,
+   "fcf": 3.6712599999999997
+  },
+  "2021": {
+   "revenue": 41.26416,
+   "gross_profit": 5.51414,
+   "sell_exp": 0.53,
+   "admin_exp": 0.75,
+   "rd_exp": 0.11,
+   "rd_availability": "present",
+   "op_income": 4.17068,
+   "net_income": 3.60634,
+   "eps": 4.8100000000000005,
+   "eps_is_estimated": false,
+   "cash": 4.32593,
+   "inventory": 4.74634,
+   "current_assets": 19.31623,
+   "current_liabilities": 10.58994,
+   "total_assets": 24.44752,
+   "total_liabilities": 10.63366,
+   "equity": 13.81386,
+   "op_cf": -3.16118,
+   "inv_cf": 0.28922,
+   "fin_cf": 4.95616,
+   "capex": -0.12835,
+   "dividend": 3.8,
+   "dividend_cash": 3.8,
+   "dividend_stock": 0.0,
+   "dividend_yield": 3.2618025751072963,
+   "dividend_yield_price": 116.5,
+   "dividend_yield_price_date": "2022-07-08",
+   "dividend_yield_is_estimated": false,
+   "dividend_ex_cash_date": "2022-07-11",
+   "dividend_ex_stock_date": null,
+   "gross_margin": 13.363024959189767,
+   "sell_ratio": 1.284407582754623,
+   "admin_ratio": 1.8175579001244664,
+   "rd_ratio": 0.26657515868492176,
+   "total_opex_ratio": 3.3685406415640116,
+   "op_margin": 10.107269843854812,
+   "net_margin": 8.739642343379824,
+   "current_ratio": 182.40169443830655,
+   "debt_ratio": 43.4958637931373,
+   "roe": 26.106678365062336,
+   "roa": 14.751353102482378,
+   "fcf": -3.28953
+  },
+  "2022": {
+   "revenue": 52.71498,
+   "gross_profit": 5.1076,
+   "sell_exp": 0.59,
+   "admin_exp": 0.7,
+   "rd_exp": 0.14,
+   "rd_availability": "present",
+   "op_income": 3.61964,
+   "net_income": 3.81325,
+   "eps": 5.08,
+   "eps_is_estimated": false,
+   "cash": 3.6648,
+   "inventory": 6.27745,
+   "current_assets": 19.65459,
+   "current_liabilities": 9.96432,
+   "total_assets": 25.03063,
+   "total_liabilities": 10.01853,
+   "equity": 15.0121,
+   "op_cf": 3.55347,
+   "inv_cf": -0.6395,
+   "fin_cf": -3.73353,
+   "capex": -0.30048,
+   "dividend": 4.6,
+   "dividend_cash": 4.6,
+   "dividend_stock": 0.0,
+   "dividend_yield": 4.791666666666666,
+   "dividend_yield_price": 96.0,
+   "dividend_yield_price_date": "2023-07-14",
+   "dividend_yield_is_estimated": false,
+   "dividend_ex_cash_date": "2023-07-17",
+   "dividend_ex_stock_date": null,
+   "gross_margin": 9.689086479782407,
+   "sell_ratio": 1.1192264513806132,
+   "admin_ratio": 1.327895789773609,
+   "rd_ratio": 0.2655791579547218,
+   "total_opex_ratio": 2.7127013991089446,
+   "op_margin": 6.866435309280209,
+   "net_margin": 7.233712314791735,
+   "current_ratio": 197.2496868827978,
+   "debt_ratio": 40.02508127042748,
+   "roe": 25.401176384383263,
+   "roa": 15.234334892889233,
+   "fcf": 3.25299
+  },
   "2023": {
    "revenue": 23.16364,
    "gross_profit": 2.34066,
    "sell_exp": 0.51,
    "admin_exp": 0.56,
    "rd_exp": 0.15,
+   "rd_availability": "present",
    "op_income": 1.15074,
    "net_income": -0.24543,
    "eps": -0.31999999999999995,
+   "eps_is_estimated": false,
    "cash": 1.82082,
    "inventory": 3.57092,
    "current_assets": 11.92193,
    "current_liabilities": 5.19863,
-   "total_liabilities": 5.2518,
    "total_assets": 16.46918,
+   "total_liabilities": 5.2518,
    "equity": 11.21738,
    "op_cf": 6.20598,
    "inv_cf": -0.62211,
    "fin_cf": -7.35441,
-   "capex": null,
-   "dividend": 0.0,
+   "capex": -0.1069,
+   "dividend": 1.1,
+   "dividend_cash": 1.1,
+   "dividend_stock": 0.0,
+   "dividend_yield": 1.3333333333333335,
+   "dividend_yield_price": 82.5,
+   "dividend_yield_price_date": "2024-07-09",
+   "dividend_yield_is_estimated": false,
+   "dividend_ex_cash_date": "2024-07-10",
+   "dividend_ex_stock_date": null,
    "gross_margin": 10.10488852356538,
    "sell_ratio": 2.201726498944035,
    "admin_ratio": 2.417582038056195,
@@ -168,7 +382,7 @@
    "debt_ratio": 31.888655051435467,
    "roe": -2.1879440653699884,
    "roa": -1.490238129645799,
-   "fcf": null
+   "fcf": 6.099080000000001
   },
   "2024": {
    "revenue": 21.21654,
@@ -176,21 +390,31 @@
    "sell_exp": 0.66,
    "admin_exp": 0.72,
    "rd_exp": 0.12,
+   "rd_availability": "present",
    "op_income": 2.68598,
    "net_income": 2.51917,
-   "eps": 3.3600000000000003,
+   "eps": 3.36,
+   "eps_is_estimated": false,
    "cash": 4.66188,
    "inventory": 3.3784,
    "current_assets": 14.51414,
    "current_liabilities": 5.83778,
-   "total_liabilities": 5.89205,
    "total_assets": 19.00604,
+   "total_liabilities": 5.89205,
    "equity": 13.11399,
    "op_cf": 2.97494,
    "inv_cf": -0.29634,
    "fin_cf": -0.01024,
-   "capex": null,
+   "capex": -0.09811,
    "dividend": 2.36,
+   "dividend_cash": 2.36,
+   "dividend_stock": 0.0,
+   "dividend_yield": 3.3475177304964534,
+   "dividend_yield_price": 70.5,
+   "dividend_yield_price_date": "2025-07-15",
+   "dividend_yield_is_estimated": false,
+   "dividend_ex_cash_date": "2025-07-16",
+   "dividend_ex_stock_date": null,
    "gross_margin": 19.56313329129066,
    "sell_ratio": 3.1107805513999933,
    "admin_ratio": 3.393578783345447,
@@ -202,7 +426,7 @@
    "debt_ratio": 31.00093443978862,
    "roe": 19.209790460416702,
    "roa": 13.254575913762151,
-   "fcf": null
+   "fcf": 2.87683
   },
   "2025": {
    "revenue": 25.30662,
@@ -210,21 +434,31 @@
    "sell_exp": 0.64,
    "admin_exp": 0.79,
    "rd_exp": 0.19,
+   "rd_availability": "present",
    "op_income": 3.01036,
    "net_income": 2.25723,
    "eps": 3.0100000000000002,
+   "eps_is_estimated": false,
    "cash": 4.56888,
    "inventory": 6.1989,
    "current_assets": 16.38303,
    "current_liabilities": 8.52066,
-   "total_liabilities": 8.58433,
    "total_assets": 22.1437,
+   "total_liabilities": 8.58433,
    "equity": 13.55937,
    "op_cf": 1.85759,
    "inv_cf": -0.46296,
    "fin_cf": -1.37099,
-   "capex": null,
+   "capex": -0.12331,
    "dividend": 2.3,
+   "dividend_cash": 2.3,
+   "dividend_stock": 0.0,
+   "dividend_yield": 2.922490470139771,
+   "dividend_yield_price": 78.7,
+   "dividend_yield_price_date": "2026-07-14",
+   "dividend_yield_is_estimated": false,
+   "dividend_ex_cash_date": "2026-07-15",
+   "dividend_ex_stock_date": null,
    "gross_margin": 18.29955956188539,
    "sell_ratio": 2.528982535004675,
    "admin_ratio": 3.121712816646396,
@@ -236,7 +470,7 @@
    "debt_ratio": 38.766466308701794,
    "roe": 16.647012361193774,
    "roa": 10.193553922786165,
-   "fcf": null
+   "fcf": 1.73428
   }
  },
  "quarterly": [
@@ -332,89 +566,91 @@
  "monthly": [
   {
    "date": "2025-09",
-   "revenue": 1.53753,
-   "mom": null
+   "revenue": 1.53753
   },
   {
    "date": "2025-10",
-   "revenue": 2.14463,
-   "mom": 39.48540841479513
+   "revenue": 2.14463
   },
   {
    "date": "2025-11",
-   "revenue": 1.51126,
-   "mom": -29.532833169357875
+   "revenue": 1.51126
   },
   {
    "date": "2025-12",
-   "revenue": 2.2299,
-   "mom": 47.55237351613886
+   "revenue": 2.2299
   },
   {
    "date": "2026-01",
-   "revenue": 1.44003,
-   "mom": -35.42176779227769
+   "revenue": 1.44003
   },
   {
    "date": "2026-02",
-   "revenue": 2.74929,
-   "mom": 90.9189391887669
+   "revenue": 2.74929
   },
   {
    "date": "2026-03",
-   "revenue": 2.36764,
-   "mom": -13.881765837725368
+   "revenue": 2.36764
   },
   {
    "date": "2026-04",
-   "revenue": 2.49651,
-   "mom": 5.4429727492355084
+   "revenue": 2.49651
   },
   {
    "date": "2026-05",
-   "revenue": 2.59188,
-   "mom": 3.8201329055361555
+   "revenue": 2.59188
   },
   {
    "date": "2026-06",
-   "revenue": 3.03188,
-   "mom": 16.976094572279578
+   "revenue": 3.03188
   },
   {
    "date": "2026-07",
-   "revenue": 2.51045,
-   "mom": -17.198240035885327
+   "revenue": 2.51045
   },
   {
    "date": "2026-08",
-   "revenue": 2.20002,
-   "mom": -12.365512159174664
+   "revenue": 2.20002
   }
  ],
  "metadata": {
-  "fetched_at": "2026-08-21T21:51:46+08:00",
-  "source": "FinMind (primary, Goodinfo blocked)",
+  "fetched_at": "2026-08-23T13:30:58+08:00",
+  "source": "FinMind (primary) + Goodinfo.tw (expense breakdown only)",
   "source_urls": {
    "income_statement": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=IS_YEAR&STOCK_ID=4721",
    "balance_sheet": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=BS_YEAR&STOCK_ID=4721",
    "cash_flow": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=CF_YEAR&STOCK_ID=4721"
   },
-  "mops_url": "https://mops.twse.com.tw/mops/web/t05st01?step=1&co_id=4721&TYPEK=otc",
-  "mops_url_otc": "https://mops.twse.com.tw/mops/web/t05st01?step=1&co_id=4721&TYPEK=otc",
-  "years_covered": [
-   "2025",
-   "2024",
-   "2023"
+  "finmind_datasets": [
+   "TaiwanStockFinancialStatements",
+   "TaiwanStockBalanceSheet",
+   "TaiwanStockCashFlowsStatement",
+   "TaiwanStockDividend",
+   "TaiwanStockMonthRevenue",
+   "TaiwanStockPrice"
   ],
-  "currency": "TWD 億元",
   "supplement_source": {
    "expense_breakdown": "Goodinfo.tw IS_YEAR (single request, sell/admin/rd only)",
-   "status": "OK",
-   "patched_at": "2026-08-22T13:56:38+08:00"
-  }
+   "status": "OK"
+  },
+  "mops_url": "https://mops.twse.com.tw/mops/web/t05st01?step=1&co_id=4721&TYPEK=sii",
+  "mops_url_otc": "https://mops.twse.com.tw/mops/web/t05st01?step=1&co_id=4721&TYPEK=otc",
+  "years_covered": [
+   "2023",
+   "2024",
+   "2025"
+  ],
+  "currency": "TWD 億元"
  },
  "verification": {
   "sanity": [],
-  "sanity_pass": true
+  "sanity_pass": true,
+  "news_crosscheck": {
+   "status": "skipped",
+   "msg": "未啟用新聞交叉（日常離線模式），僅以 FinMind/MOPS 為準",
+   "warnings": []
+  },
+  "cross_source_warnings": [],
+  "has_verify_warn": false
  }
 }

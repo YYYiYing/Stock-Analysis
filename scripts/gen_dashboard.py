@@ -161,7 +161,27 @@ def generate(sid):
     md=j.get("metadata",{})
     ver=j.get("verification", {"sanity_pass": True, "sanity": []})
     divs=DIVS.get(sid, {})
-    div_series=[divs.get(y) for y in years]
+    # 優先 FinMind metrics.dividend_cash/stock/yield，fallback 舊 JSON
+    div_cash_series=[]
+    div_stock_series=[]
+    div_yield_series=[]
+    div_yield_is_est=[]
+    for y in years:
+        # cash / stock / yield 優先 metrics，回退 DIVS（DIVS 僅現金）
+        cash = M[y].get("dividend_cash")
+        if cash is None:
+            cash = M[y].get("dividend")
+        if cash is None:
+            cash = divs.get(y)
+        stock = M[y].get("dividend_stock")
+        # 若 metrics 缺 stock 但有舊 JSON 無 stock，一律 None
+        yld = M[y].get("dividend_yield")
+        is_est = bool(M[y].get("dividend_yield_is_estimated"))
+        div_cash_series.append(cash)
+        div_stock_series.append(stock)
+        div_yield_series.append(yld)
+        div_yield_is_est.append(is_est)
+    div_series=div_cash_series  # 兼容舊變數
     g=lambda k: [M[y].get(k) for y in years]
     L=lambda k: M[years[-1]].get(k)
     P=lambda k: M[years[-2]].get(k)
@@ -216,7 +236,10 @@ def generate(sid):
     except: rev_cagr=0
     gm_d=dpp("gross_margin"); opex_d=dpp("total_opex_ratio"); om_d=dpp("op_margin")
     ni_yoy=yoy("net_income"); eps_yoy=yoy("eps"); roe_d=dpp("roe"); nm_d=dpp("net_margin")
-    payout=(divs.get(years[-1],0)/L("eps")*100) if (divs.get(years[-1]) and L("eps")) else None
+    _last_cash = div_cash_series[-1]
+    payout=(_last_cash/L("eps")*100) if (_last_cash and L("eps")) else None
+    _last_yield = div_yield_series[-1]
+    _last_yield_is_est = div_yield_is_est[-1] if div_yield_is_est else False
     ocf_ni=(L("op_cf")/L("net_income")) if (L("op_cf") is not None and L("net_income")) else None
     cr_l, dr_l = L("current_ratio"), L("debt_ratio")
     cash_yoy=yoy("cash")
@@ -285,18 +308,36 @@ def generate(sid):
 <li>營業利益率三年 {fmt_pct(g('op_margin')[0])} → {fmt_pct(g('op_margin')[1])} → {fmt_pct(L('op_margin'))}，{years[-1]}年 {om_d:+.1f}pp，{'規模效益顯現' if (om_d or 0)>= (gm_d or 0) else '部分被費用侵蝕'}</li>
 </ul>"""
     # KPI 獲利
+    _k2_cash_val = f"{_last_cash:.2f}" if isinstance(_last_cash,(int,float)) else ("— <span style='font-size:0.75em;color:#a0aec0'>尚未除息</span>" if _last_cash is None else "-")
+    # yield 顯示：若為預估加註 (預估,隨現價浮動)
+    if _last_yield is not None:
+        _yield_txt = f"{_last_yield:.1f}%"
+        if _last_yield_is_est:
+            _yield_txt += " <span style='color:#dd6b20;font-size:0.78em'>(預估,隨現價浮動)</span>"
+    else:
+        _yield_txt = "—"
     k2=f"""<div class="kpi-row">
 <div class="kpi-card {'green' if (ni_yoy or 0)>0 else 'red'}"><div class="kpi-label">稅後淨利 (億元)</div><div class="kpi-value">{fmt(L('net_income'))}</div><div class="kpi-change {'up' if (ni_yoy or 0)>0 else 'down'}">▲ {ni_yoy:+.1f}% YoY（{years[-2]}年{fmt(P('net_income'))}→{years[-1]}年{fmt(L('net_income'))}）</div></div>
 <div class="kpi-card {'green' if (eps_yoy or 0)>0 else 'red'}"><div class="kpi-label">EPS (元)</div><div class="kpi-value">{fmt(L('eps'),2)}</div><div class="kpi-change {'up' if (eps_yoy or 0)>0 else 'down'}">▲ {eps_yoy:+.1f}% YoY{'｜創三年新高' if L('eps')==max(x for x in g('eps') if x is not None) else ''}</div></div>
 <div class="kpi-card green"><div class="kpi-label">ROE</div><div class="kpi-value">{fmt_pct(L('roe'))}</div><div class="kpi-change {'up' if (roe_d or 0)>0 else 'down'}">{'▲' if (roe_d or 0)>0 else '▼'} {years[-2]}年{fmt_pct(P('roe'))} → {years[-1]}年{fmt_pct(L('roe'))}</div></div>
 <div class="kpi-card green"><div class="kpi-label">ROA</div><div class="kpi-value">{fmt_pct(L('roa'))}</div><div class="kpi-change neutral">■ {years[-2]}年{fmt_pct(P('roa'))} → {years[-1]}年{fmt_pct(L('roa'))}</div></div>
-<div class="kpi-card purple"><div class="kpi-label">現金股利 (元/股)</div><div class="kpi-value">{divs.get(years[-1], '-')}</div><div class="kpi-change neutral">■ 配息率約 {f"{payout:.0f}%" if payout else "—"}</div></div>
+<div class="kpi-card purple"><div class="kpi-label">現金股利 (元/股)</div><div class="kpi-value">{_k2_cash_val}</div><div class="kpi-change neutral">■ 配息率約 {f"{payout:.0f}%" if payout else "—"}｜殖利率 {_yield_txt}</div></div>
 </div>"""
+    def _fmt_div(v):
+        return f"{v:.2f}" if isinstance(v,(int,float)) else "—"
+    _has_stock = any(isinstance(x,(int,float)) and x not in (None,0) for x in div_stock_series)
+    _stock_txt = f"（配股 { _fmt_div(div_stock_series[0]) }→{_fmt_div(div_stock_series[1])}→{_fmt_div(div_stock_series[2])} 股）" if _has_stock else ""
+    _yield_list = []
+    for v, is_est in zip(div_yield_series, div_yield_is_est):
+        if v is None:
+            _yield_list.append("—")
+        else:
+            _yield_list.append(f"{v:.1f}%{'*預估' if is_est else ''}")
     ins2=f"""<ul>
 <li>三年EPS {fmt(M[years[0]]['eps'],2)} → {fmt(M[years[1]]['eps'],2)} → {fmt(L('eps'),2)}元，CAGR {(((L('eps')/M[years[0]]['eps'])**0.5-1)*100):+.1f}%，{years[-1]}年{'創新高' if L('eps')==max(x for x in g('eps') if x is not None) else '回檔'}</li>
 <li>稅後淨利 {fmt(M[years[0]]['net_income'])} → {fmt(L('net_income'))} 億，{years[-1]}年 YoY {ni_yoy:+.1f}%，淨利率 {fmt_pct(L('net_margin'))}</li>
 <li>ROE三年 {fmt_pct(g('roe')[0])} → {fmt_pct(g('roe')[1])} → {fmt_pct(L('roe'))}，{'穩定優質' if L('roe') and L('roe')>10 else '待提升'}</li>
-<li>現金股利 {div_series[0]} → {div_series[1]} → {div_series[2]} 元，{years[-1]}年配息率約 {f'{payout:.0f}%' if payout else '—'}</li>
+<li>現金股利 {_fmt_div(div_cash_series[0])} → {_fmt_div(div_cash_series[1])} → {_fmt_div(div_cash_series[2])} 元{_stock_txt}，{years[-1]}年配息率約 {f'{payout:.0f}%' if payout else '—'}｜殖利率 {_yield_list[0]} → {_yield_list[1]} → {_yield_list[2]}（*預估為隨現價浮動）</li>
 </ul>"""
     # KPI 財務
     k3=f"""<div class="kpi-row">
@@ -306,9 +347,12 @@ def generate(sid):
 <div class="kpi-card {'green' if (L('fcf') or 0)>0 else 'red'}"><div class="kpi-label">自由現金流 (億元)</div><div class="kpi-value">{fmt(L('fcf'))}</div><div class="kpi-change neutral">■ Capex {fmt(L('capex'))} 億</div></div>
 <div class="kpi-card purple"><div class="kpi-label">現金部位 (億元)</div><div class="kpi-value">{fmt(L('cash'))}</div><div class="kpi-change {'up' if (cash_yoy or 0)>0 else 'down'}">{'▲' if (cash_yoy or 0)>0 else '▼'} {cash_yoy:+.1f}% YoY</div></div>
 </div>"""
+    inv_yoy = yoy("inventory")
+    inv_txt = f"存貨 {fmt(g('inventory')[0])} → {fmt(L('inventory'))} 億（{inv_yoy:+.1f}% YoY）" if inv_yoy is not None else f"存貨 {fmt(g('inventory')[0])} → {fmt(L('inventory'))} 億"
     ins3=f"""<ul>
 <li>流動比率 {fmt_pct(g('current_ratio')[0])} → {fmt_pct(cr_l)}，{cr_grade}，短期償債能力{'良好' if cr_l and cr_l>150 else '偏弱'}</li>
 <li>負債比率 {fmt_pct(g('debt_ratio')[0])} → {fmt_pct(dr_l)}，{dr_grade}</li>
+<li>{inv_txt}，{ '週轉壓力升' if (inv_yoy or 0)>30 else '存貨控管穩定' if (inv_yoy or 0)>-10 else '存貨去化'}</li>
 <li>現金部位 {fmt(M[years[0]]['cash'])} → {fmt(L('cash'))} 億（{years[-1]}年 {cash_yoy:+.1f}%），{'財務彈性充足' if (cash_yoy or 0)>0 else '因配息／投資消化'}</li>
 <li>營業現金流 {fmt(L('op_cf'))} 億，為淨利的 {f"{ocf_ni:.1f} 倍" if ocf_ni is not None else "—"}，{f"獲利含金量高" if ocf_ni and ocf_ni>0.8 else "現金轉換待改善" if ocf_ni is not None else "現金數據待補"}</li>
 </ul>"""
@@ -361,6 +405,7 @@ def generate(sid):
     ])
     bs_t=table([
         ("流動資產 (億元)", g("current_assets"), lambda v: fmt(v), trend(g("current_assets")), ""),
+        ("存貨 (億元)", g("inventory"), lambda v: fmt(v), trend(g("inventory"), higher=False), ""),
         ("流動負債 (億元)", g("current_liabilities"), lambda v: fmt(v), trend(g("current_liabilities"), higher=False), ""),
         ("資產總額 (億元)", g("total_assets"), lambda v: fmt(v), trend(g("total_assets")), ""),
         ("負債總額 (億元)", g("total_liabilities"), lambda v: fmt(v), trend(g("total_liabilities"), higher=False), ""),
@@ -383,10 +428,19 @@ def generate(sid):
     scales={"x":{"grid":{"display":False}},"y":{"grid":{"color":"rgba(0,0,0,0.05)"},"title":{"display":True,"text":"億元"}},"y2":{"position":"right","grid":{"display":False},"ticks":{"callback":"__PCT__"},"title":{"display":True,"text":"%"}}}
     cfg={"type":"bar","data":{"labels":years,"datasets":[{"label":"營業收入 (億元)","data":g("revenue"),"backgroundColor":"rgba(49,130,206,0.15)","borderColor":"#3182ce","borderWidth":2,"yAxisID":"y"},{"label":"毛利率 (%)","data":g("gross_margin"),"type":"line","borderColor":"#38a169","backgroundColor":"#38a169","pointRadius":5,"tension":0.3,"yAxisID":"y2"}]},"options":{**common, "scales":scales}}
     charts.append(wrap("revenueChart","營收與毛利率趨勢",cfg))
-    # 2
+    # 2 費用堆疊 + FinMind 總額校核虛線（若 Goodinfo 限流則據此判斷）
+    # 計算 FinMind 總費用金額（用於校核虛線）
+    _total_opex_amt = []
+    for y in years:
+        tr = M[y].get("total_opex_ratio")
+        rv = M[y].get("revenue")
+        if tr is not None and rv is not None:
+            _total_opex_amt.append(tr * rv / 100)
+        else:
+            _total_opex_amt.append(None)
     scales={"x":{"stacked":True,"grid":{"display":False}},"y":{"stacked":True,"grid":{"color":"rgba(0,0,0,0.05)"},"title":{"display":True,"text":"億元"}}}
-    cfg={"type":"bar","data":{"labels":years,"datasets":[{"label":"推銷費用","data":g("sell_exp"),"backgroundColor":"#e53e3e"},{"label":"管理費用","data":g("admin_exp"),"backgroundColor":"#dd6b20"},{"label":"研發費用","data":g("rd_exp"),"backgroundColor":"#805ad5"}]},"options":{**common, "scales":scales}}
-    charts.append(wrap("expenseStackChart","費用結構堆疊",cfg))
+    cfg={"type":"bar","data":{"labels":years,"datasets":[{"label":"推銷費用","data":g("sell_exp"),"backgroundColor":"#e53e3e"},{"label":"管理費用","data":g("admin_exp"),"backgroundColor":"#dd6b20"},{"label":"研發費用","data":g("rd_exp"),"backgroundColor":"#805ad5"},{"label":"FinMind總額(校核)","data":_total_opex_amt,"type":"line","borderColor":"#718096","backgroundColor":"#718096","borderDash":[6,4],"pointRadius":3,"tension":0.2}]},"options":{**common, "scales":scales}}
+    charts.append(wrap("expenseStackChart","費用結構堆疊（含FinMind總額校核虛線）",cfg))
     # 3
     scales={"x":{"grid":{"display":False}},"y":{"grid":{"color":"rgba(0,0,0,0.05)"},"ticks":{"callback":"__PCT__"}}}
     cfg={"type":"line","data":{"labels":years,"datasets":[{"label":"推銷費用率","data":g("sell_ratio"),"borderColor":"#e53e3e","tension":0.3},{"label":"管理費用率","data":g("admin_ratio"),"borderColor":"#dd6b20","tension":0.3},{"label":"研發費用率","data":g("rd_ratio"),"borderColor":"#805ad5","tension":0.3},{"label":"總費用率","data":g("total_opex_ratio"),"borderColor":"#718096","borderDash":[5,5],"tension":0.3}]},"options":{**common, "scales":scales}}
@@ -407,9 +461,26 @@ def generate(sid):
     scales={"x":{"grid":{"display":False}},"y":{"grid":{"color":"rgba(0,0,0,0.05)"},"ticks":{"callback":"__PCT__"}}}
     cfg={"type":"line","data":{"labels":years,"datasets":[{"label":"毛利率","data":g("gross_margin"),"borderColor":"#38a169","tension":0.3},{"label":"營業利益率","data":g("op_margin"),"borderColor":"#3182ce","tension":0.3},{"label":"淨利率","data":g("net_margin"),"borderColor":"#805ad5","tension":0.3}]},"options":{**common, "scales":scales}}
     charts.append(wrap("profitMarginChart","三層利潤率比較",cfg))
-    scales={"x":{"grid":{"display":False}},"y":{"grid":{"color":"rgba(0,0,0,0.05)"},"title":{"display":True,"text":"元/股"}}}
-    cfg={"type":"bar","data":{"labels":years,"datasets":[{"label":"現金股利 (元/股)","data":div_series,"backgroundColor":"rgba(221,107,32,0.3)","borderColor":"#dd6b20","borderWidth":2}]},"options":{**common, "scales":scales}}
-    charts.append(wrap("dividendChart","現金股利趨勢",cfg))
+    # 股利：疊加長柱（現金+配股） + 殖利率曲線（實線=已除息，橘點/虛線=隨現價浮動預估）
+    _has_stock = any(isinstance(x,(int,float)) and x not in (None,0) for x in div_stock_series)
+    _yield_point_bg = ["#dd6b20" if is_est else "#38a169" for is_est in div_yield_is_est]
+    _yield_point_border = _yield_point_bg
+    # 若含配股，第二段用紫色堆疊；若無則僅現金
+    _div_datasets = [
+        {"label":"現金股利 (元/股)","data":div_cash_series,"backgroundColor":"rgba(221,107,32,0.3)","borderColor":"#dd6b20","borderWidth":2,"stack":"div"},
+    ]
+    if _has_stock:
+        _div_datasets.append({"label":"股票股利 (股)","data":div_stock_series,"backgroundColor":"rgba(128,90,213,0.35)","borderColor":"#805ad5","borderWidth":2,"stack":"div"})
+    # 殖利率右軸
+    _div_datasets.append({
+        "label":"殖利率 (%)","data":div_yield_series,"type":"line","borderColor":"#38a169","backgroundColor":"#38a169",
+        "pointBackgroundColor":_yield_point_bg,"pointBorderColor":_yield_point_border,"pointRadius":5,"pointHoverRadius":7,
+        "borderWidth":2,"tension":0.3,"yAxisID":"y2",
+        "segment":{"borderColor":"__SEGMENT_MOM__"} if any(div_yield_is_est) else {}
+    })
+    scales={"x":{"stacked":True,"grid":{"display":False}},"y":{"stacked":True,"grid":{"color":"rgba(0,0,0,0.05)"},"title":{"display":True,"text":"元/股"}},"y2":{"position":"right","grid":{"display":False},"ticks":{"callback":"__PCT__"},"title":{"display":True,"text":"%"}}}
+    cfg={"type":"bar","data":{"labels":years,"datasets":_div_datasets},"options":{**common, "scales":scales, "plugins":{"legend":{"position":"bottom"},"tooltip":{"mode":"index","intersect":False,"callbacks":{"label":"__TOOLTIP_LABEL__"}}}}}
+    charts.append(wrap("dividendChart","股利（長柱：現金+配股疊加）與殖利率",cfg))
     scales={"x":{"stacked":True,"grid":{"display":False}},"y":{"stacked":True,"grid":{"color":"rgba(0,0,0,0.05)"},"title":{"display":True,"text":"億元"}}}
     cfg={"type":"bar","data":{"labels":years,"datasets":[{"label":"流動資產","data":g("current_assets"),"backgroundColor":"#3182ce"},{"label":"非流動資產","data":nca_series,"backgroundColor":"#90cdf4"},{"label":"流動負債","data":cl_neg,"backgroundColor":"#e53e3e"},{"label":"非流動負債","data":ncl_series,"backgroundColor":"#feb2b2"}]},"options":{**common, "scales":scales}}
     charts.append(wrap("balanceSheetChart","資產負債結構",cfg))
@@ -420,8 +491,8 @@ def generate(sid):
     cfg={"type":"line","data":{"labels":years,"datasets":[{"label":"流動比率","data":g("current_ratio"),"borderColor":"#3182ce","tension":0.3},{"label":"負債比率","data":g("debt_ratio"),"borderColor":"#e53e3e","tension":0.3}]},"options":{**common, "scales":scales}}
     charts.append(wrap("ratioChart","流動與負債比率",cfg))
     scales={"x":{"grid":{"display":False}},"y":{"grid":{"color":"rgba(0,0,0,0.05)"},"title":{"display":True,"text":"億元"}}}
-    cfg={"type":"line","data":{"labels":years,"datasets":[{"label":"現金部位","data":g("cash"),"borderColor":"#3182ce","backgroundColor":"rgba(49,130,206,0.1)","fill":True,"tension":0.3},{"label":"自由現金流","data":g("fcf"),"borderColor":"#38a169","borderDash":[5,5],"tension":0.3}]},"options":{**common, "scales":scales}}
-    charts.append(wrap("cashChart","現金趨勢",cfg))
+    cfg={"type":"line","data":{"labels":years,"datasets":[{"label":"現金部位","data":g("cash"),"borderColor":"#3182ce","backgroundColor":"rgba(49,130,206,0.1)","fill":True,"tension":0.3},{"label":"存貨","data":g("inventory"),"borderColor":"#805ad5","backgroundColor":"rgba(128,90,213,0.08)","fill":False,"tension":0.3},{"label":"自由現金流","data":g("fcf"),"borderColor":"#38a169","borderDash":[5,5],"tension":0.3}]},"options":{**common, "scales":scales}}
+    charts.append(wrap("cashChart","現金與存貨趨勢",cfg))
 
     # --- 季月動能（置頂首位、預設展開；P3：無最新季亦不隱藏，顯示至上一季）---
     has_q = "quarterly" in j and isinstance(j["quarterly"], list) and len(j["quarterly"])>0
@@ -447,6 +518,9 @@ def generate(sid):
             m_charts.append(wrap("qqRevChart","單季營收與毛利率（近8季）",cfg))
             cfg2={"type":"bar","data":{"labels":q_labels,"datasets":[{"label":"單季淨利 (億元)","data":q_ni,"backgroundColor":"rgba(56,161,105,0.15)","borderColor":"#38a169","borderWidth":2,"yAxisID":"y"},{"label":"淨利率 (%)","data":q_nm,"type":"line","borderColor":"#805ad5","backgroundColor":"#805ad5","pointRadius":4,"tension":0.3,"yAxisID":"y2"}]},"options":{**common, "scales":scales}}
             m_charts.append(wrap("qqNiChart","單季淨利與淨利率",cfg2))
+            # 單季EPS 暫存，待月營收後統一置於最後
+            _qq_eps_data = [x.get("eps") for x in q]
+            _qq_labels_for_eps = q_labels
             qoq=[x.get("qoq") for x in q]
             if all(v is None for v in qoq):
                 qoq=[]
@@ -509,6 +583,10 @@ def generate(sid):
                 }
             }
             m_charts.append(wrap("mmRevChart","月營收與 MoM（近12月）",cfg))
+        # 單季EPS 置於月營收後方（依使用者要求）
+        if has_q and "_qq_eps_data" in locals() and "_qq_labels_for_eps" in locals():
+            cfg_eps={"type":"bar","data":{"labels":_qq_labels_for_eps,"datasets":[{"label":"單季EPS (元)","data":_qq_eps_data,"backgroundColor":"rgba(49,130,206,0.15)","borderColor":"#3182ce","borderWidth":2}]},"options":{**common, "scales":{"x":{"grid":{"display":False}},"y":{"grid":{"color":"rgba(0,0,0,0.05)"},"title":{"display":True,"text":"元"}}}}}
+            m_charts.append(wrap("qqEpsChart","單季EPS（近8季）",cfg_eps))
         q=j.get("quarterly",[])
         if q:
             last=q[-1]

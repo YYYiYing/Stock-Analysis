@@ -94,18 +94,90 @@ def fetch_finmind_annual(stock_id):
     for row in cf_data:
         if row["date"][5:] == "12-31":
             cf_by_year.setdefault(row["date"][:4], {})[row["type"]] = row["value"]
-    # Dividend: map by CashExDividendTradingDate year
+    # Dividend: map by 盈餘年度 (ex_year - 1, 儲存 cash/stock/ex_date 供殖利率用)
+    import re
+    from datetime import datetime as _dt, timedelta as _td
+    def _parse_year_field(s):
+        if not s:
+            return None
+        m = re.search(r"(\d{2,4})", str(s))
+        if not m:
+            return None
+        n = int(m.group(1))
+        return 1911 + n if n < 1911 else n
     div_data = finmind("TaiwanStockDividend", stock_id, "2020-01-01")
     div_by_year = {}
     for row in div_data:
-        d = row.get("CashExDividendTradingDate")
-        if d and len(d) >= 4:
-            y = d[:4]
-            # 取現金股利金額 (CashEarningsDistribution + CashStatutorySurplus)
-            cash = (row.get("CashEarningsDistribution") or 0) + (row.get("CashStatutorySurplus") or 0)
-            # 若同一年多筆，取最後一筆 (半年度可能分兩次)
-            # 但多數公司一年一次，半年度單次
-            div_by_year[y] = cash
+        # 優先用官方 year 欄（盈餘年度），缺則用除息日年份 -1
+        y = _parse_year_field(row.get("year"))
+        d_cash = row.get("CashExDividendTradingDate")
+        d_stock = row.get("StockExDividendTradingDate")
+        ex_for_year = d_cash or d_stock
+        if y is None and ex_for_year and len(ex_for_year) >= 4:
+            try:
+                y = int(ex_for_year[:4]) - 1
+            except:
+                continue
+        if y is None:
+            continue
+        y = str(y)
+        cash = (row.get("CashEarningsDistribution") or 0) + (row.get("CashStatutorySurplus") or 0)
+        stock = (row.get("StockEarningsDistribution") or 0) + (row.get("StockStatutorySurplus") or 0)
+        if y not in div_by_year:
+            div_by_year[y] = {"cash": 0.0, "stock": 0.0, "ex_cash": None, "ex_stock": None, "has_row": False}
+        # 累加（處理半年配/季配多筆），保留首個非空 ex_date
+        if cash or stock or cash == 0 or stock == 0:
+            div_by_year[y]["cash"] += float(cash or 0)
+            div_by_year[y]["stock"] += float(stock or 0)
+            div_by_year[y]["has_row"] = True
+            if d_cash and not div_by_year[y]["ex_cash"]:
+                div_by_year[y]["ex_cash"] = d_cash
+            if d_stock and not div_by_year[y]["ex_stock"]:
+                div_by_year[y]["ex_stock"] = d_stock
+        # 若為 0 且無 ex_date（如 FinMind 佔位列），仍保留但後續過濾
+    # 零值無 ex_date 的佔位 years 轉 None 以免誤為 0 配息污染
+    for k in list(div_by_year.keys()):
+        v = div_by_year[k]
+        if not v["has_row"] and v["cash"] == 0 and v["stock"] == 0:
+            del div_by_year[k]
+            continue
+        # 全零且 ex_date 缺的視為無配息年份，保留 cash/stock 為 0 但標記；後續 yield 會為 None
+        if v["cash"] == 0 and v["stock"] == 0 and not v["ex_cash"] and not v["ex_stock"]:
+            # 可能是 FinMind 空列，刪除
+            if not v["has_row"]:
+                del div_by_year[k]
+    # --- Price for yield (除息前一日收盤 / 最新價預估，FinMind 同源不增 API provider) ---
+    try:
+        price_rows = finmind("TaiwanStockPrice", stock_id, "2020-01-01")
+        _price_map = {r["date"]: r["close"] for r in price_rows if r.get("close") is not None}
+        _sorted_price_dates = sorted(_price_map.keys())
+        _latest_close = _price_map[_sorted_price_dates[-1]] if _sorted_price_dates else None
+        _latest_date = _sorted_price_dates[-1] if _sorted_price_dates else None
+    except Exception:
+        _price_map = {}
+        _sorted_price_dates = []
+        _latest_close = None
+        _latest_date = None
+    def _prev_close(ex_date):
+        if not ex_date or not _price_map:
+            return None, None
+        # 回溯找前一交易日收盤
+        try:
+            d = _dt.strptime(ex_date, "%Y-%m-%d").date() - _td(days=1)
+            for _ in range(10):
+                k = d.strftime("%Y-%m-%d")
+                if k in _price_map:
+                    return _price_map[k], k
+                d -= _td(days=1)
+        except Exception:
+            pass
+        # fallback：取 ex_date 之前最近一筆
+        cands = [dd for dd in _sorted_price_dates if dd < ex_date]
+        if cands:
+            k = cands[-1]
+            return _price_map[k], k
+        return None, None
+
     # Month revenue for quarterly/monthly另處理，這裡不彙總年營收用IS sum
     annual = {}
     years_sorted = sorted(is_by_year.keys())
@@ -172,6 +244,50 @@ def fetch_finmind_annual(stock_id):
             except:
                 pass
             return v/1e8
+        _div_info = div_by_year.get(y) or {}
+        _div_cash = _div_info.get("cash") if _div_info else None
+        _div_stock = _div_info.get("stock") if _div_info else None
+        # 若當年無紀錄，視為 None（尚未公告），但若為 0 且有 ex_date 則保留 0
+        if _div_info and _div_info.get("has_row"):
+            _div_cash_val = float(_div_cash) if _div_cash is not None else None
+            _div_stock_val = float(_div_stock) if _div_stock is not None else None
+            # 0 配息亦為有效值，None 表示無紀錄
+            if _div_cash_val == 0 and _div_stock_val == 0 and not _div_info.get("ex_cash") and not _div_info.get("ex_stock"):
+                _div_cash_val = None
+                _div_stock_val = None
+        else:
+            _div_cash_val = _div_cash if isinstance(_div_cash, (int, float)) and _div_cash != 0 else (0.0 if _div_info and _div_info.get("has_row") and _div_cash == 0 else None)
+            _div_stock_val = _div_stock if isinstance(_div_stock, (int, float)) and _div_stock != 0 else (0.0 if _div_info and _div_info.get("has_row") and _div_stock == 0 else None)
+            if _div_cash_val is None and _div_stock_val is None:
+                # 無紀錄
+                pass
+        # 標準化：若無 has_row 則 None
+        if not _div_info.get("has_row"):
+            _div_cash_val = None
+            _div_stock_val = None
+        ex_cash = _div_info.get("ex_cash") if _div_info else None
+        ex_stock = _div_info.get("ex_stock") if _div_info else None
+        ex_for_yield = ex_cash or ex_stock
+        _yield = None
+        _yield_price = None
+        _yield_price_date = None
+        _yield_is_estimated = False
+        if _div_cash_val is not None and _div_cash_val != 0:
+            if ex_for_yield:
+                c, cd = _prev_close(ex_for_yield)
+                if c:
+                    _yield = _div_cash_val / c * 100
+                    _yield_price = c
+                    _yield_price_date = cd
+            else:
+                # 尚未除息：用最新價預估，標 estimated
+                if _latest_close:
+                    _yield = _div_cash_val / _latest_close * 100
+                    _yield_price = _latest_close
+                    _yield_price_date = _latest_date
+                    _yield_is_estimated = True
+        # 最新期若 cash 為 None（未公告），yield 保持 None；前端將以最新價虛線預估待除息後補
+        # 若 ex 存在但尚未到前一日（如未來 ex），_prev_close 回溯會取到最新價之前的最近交易日，仍有效
         annual[y] = {
             "revenue": to_yi(rev),
             "gross_profit": to_yi(gp),
@@ -191,7 +307,15 @@ def fetch_finmind_annual(stock_id):
             "inv_cf": to_yi(inv_cf),
             "fin_cf": to_yi(fin_cf),
             "capex": to_yi(capex),  # 保持負值
-            "dividend": div_by_year.get(y),  # 已是元/股，無需轉
+            "dividend": _div_cash_val,  # 兼容舊鍵：現金股利
+            "dividend_cash": _div_cash_val,
+            "dividend_stock": _div_stock_val,
+            "dividend_ex_cash_date": ex_cash,
+            "dividend_ex_stock_date": ex_stock,
+            "dividend_yield": _yield,
+            "dividend_yield_price": _yield_price,
+            "dividend_yield_price_date": _yield_price_date,
+            "dividend_yield_is_estimated": _yield_is_estimated,
         }
     return annual, is_by_year, bs_by_year, cf_by_year, div_by_year
 
@@ -340,7 +464,16 @@ def build_metrics(annual, expense_by_year):
         inv_cf = a["inv_cf"]
         fin_cf = a["fin_cf"]
         capex = a["capex"]
-        div = a["dividend"]
+        div = a.get("dividend")
+        div_cash = a.get("dividend_cash", div)
+        div_stock = a.get("dividend_stock")
+        div_yield = a.get("dividend_yield")
+        div_yield_price = a.get("dividend_yield_price")
+        div_yield_price_date = a.get("dividend_yield_price_date")
+        div_yield_is_est = a.get("dividend_yield_is_estimated", False)
+        ex_cash = a.get("dividend_ex_cash_date")
+        ex_stock = a.get("dividend_ex_stock_date")
+        eps_is_est = a.get("eps_is_estimated", False)
         # expense細拆：優先 Goodinfo，若無則 null；同時判斷 rd_availability 以區分產業無研發 vs 暫缺
         has_rd_row = expense_by_year.get("_has_rd_row", False) if expense_by_year else False
         is_blocked = not expense_by_year or (len([k for k in expense_by_year.keys() if not k.startswith("_")]) == 0)
@@ -403,6 +536,7 @@ def build_metrics(annual, expense_by_year):
             "op_income": oi,
             "net_income": ni,
             "eps": eps,
+            "eps_is_estimated": eps_is_est,
             "cash": cash,
             "inventory": a["inventory"],
             "current_assets": ca,
@@ -415,6 +549,14 @@ def build_metrics(annual, expense_by_year):
             "fin_cf": fin_cf,
             "capex": capex,
             "dividend": div,
+            "dividend_cash": div_cash,
+            "dividend_stock": div_stock,
+            "dividend_yield": div_yield,
+            "dividend_yield_price": div_yield_price,
+            "dividend_yield_price_date": div_yield_price_date,
+            "dividend_yield_is_estimated": div_yield_is_est,
+            "dividend_ex_cash_date": ex_cash,
+            "dividend_ex_stock_date": ex_stock,
             "gross_margin": gross_margin,
             "sell_ratio": sell_ratio,
             "admin_ratio": admin_ratio,
@@ -636,7 +778,7 @@ def fetch_single(stock_id, company_name=None, delay_goodinfo=True):
                 "balance_sheet": f"https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=BS_YEAR&STOCK_ID={stock_id}",
                 "cash_flow": f"https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=CF_YEAR&STOCK_ID={stock_id}",
             },
-            "finmind_datasets": ["TaiwanStockFinancialStatements","TaiwanStockBalanceSheet","TaiwanStockCashFlowsStatement","TaiwanStockDividend","TaiwanStockMonthRevenue"],
+            "finmind_datasets": ["TaiwanStockFinancialStatements","TaiwanStockBalanceSheet","TaiwanStockCashFlowsStatement","TaiwanStockDividend","TaiwanStockMonthRevenue","TaiwanStockPrice"],
             "supplement_source": {
                 "expense_breakdown": "Goodinfo.tw IS_YEAR (single request, sell/admin/rd only)",
                 "status": status,
@@ -717,7 +859,7 @@ def patch_existing(stock_id):
     # if original source was FinMind primary, preserve
     if "FinMind" not in j["metadata"].get("source",""):
         j["metadata"]["source"] = "FinMind (primary) + Goodinfo.tw (expense breakdown only, patched)"
-        j["metadata"]["finmind_datasets"] = ["TaiwanStockFinancialStatements","TaiwanStockBalanceSheet","TaiwanStockCashFlowsStatement","TaiwanStockDividend","TaiwanStockMonthRevenue"]
+        j["metadata"]["finmind_datasets"] = ["TaiwanStockFinancialStatements","TaiwanStockBalanceSheet","TaiwanStockCashFlowsStatement","TaiwanStockDividend","TaiwanStockMonthRevenue","TaiwanStockPrice"]
     j["metrics"] = metrics
     # re-sanity（含污染與新聞交叉，誠實告知）
     years = sorted(metrics.keys())
