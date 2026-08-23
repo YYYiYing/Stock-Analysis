@@ -333,8 +333,8 @@ def generate_index_html(reports):
         .footer {{ text-align: center; margin-top: 18px; color: #718096; font-size: 0.82rem; }}
         @media (max-width: 768px) {{
             .container {{ padding: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }}
-            .header {{ padding: 18px 16px; min-width: 560px; width: 100%; }}
-            table {{ font-size: 0.8rem; min-width: 560px; }}
+            .header {{ padding: 18px 16px; min-width: 720px; width: 100%; box-sizing: border-box; }}
+            table {{ font-size: 0.8rem; min-width: 720px; }}
             th, td {{ padding: 10px 8px; }}
             .summary {{ font-size: 0.76rem; max-width: 220px; line-height: 1.5; }}
         }}
