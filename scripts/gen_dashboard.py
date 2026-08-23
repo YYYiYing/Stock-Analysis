@@ -133,8 +133,8 @@ def trend(series, higher=True):
         return ("neutral","■ 資料不足")
     d=series[-1]-series[0]
     good=d>0 if higher else d<0
-    if abs(d)<0.3: return ("neutral", "■ 大致持平")
-    return (("up", "▲ 改善") if good else ("down", "▼ 惡化"))
+    if abs(d)<0.3: return ("neutral", "■ 持平")
+    return (("up", "▲ 轉強") if good else ("down", "▼ 轉弱"))
 def rev_trend(series):
     if series[0] in (None,0) or series[-1] is None: return ("neutral","■ 資料不足")
     try: cagr=((series[-1]/series[0])**0.5-1)*100
