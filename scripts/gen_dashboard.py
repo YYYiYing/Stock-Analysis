@@ -21,6 +21,8 @@ INDUSTRY = {
     "8069": "光電業",
     "4721": "化學（特用化學）",
     "6782": "生技醫療（隱形眼鏡）",
+    "3231": "電腦及週邊（AI 伺服器 ODM）",
+    "5386": "電子零組件（顯示卡通路）",
 }
 
 # 與 8069 完全相同的 CSS + 行動裝置擴充
@@ -46,6 +48,7 @@ html, body { overflow-x: hidden; }
     .kpi-card { flex: 1; min-width: 180px; background: white; border-radius: 12px;
       padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-left: 4px solid #3182ce; }
     .kpi-card.green { border-left-color: #38a169; }
+    .kpi-card.yellow { border-left-color: #ecc94b; }
     .kpi-card.orange { border-left-color: #dd6b20; }
     .kpi-card.red { border-left-color: #e53e3e; }
     .kpi-card.purple { border-left-color: #805ad5; }
@@ -218,7 +221,49 @@ def generate(sid):
     cr_l, dr_l = L("current_ratio"), L("debt_ratio")
     cash_yoy=yoy("cash")
     cr_grade=("優異（>200%）" if cr_l and cr_l>200 else "健康（150–200%）" if cr_l and cr_l>150 else "需關注（<150%）")
-    dr_grade=("穩健（<60%）" if dr_l and dr_l<60 else "偏高（≥60%）")
+    # 與 generate_index.py:debt_health() 同門檻四分法，對齊年燈號
+    is_retail = sid == "5904"
+    if dr_l is None:
+        dr_grade = "資料暫缺"
+    elif is_retail:
+        if dr_l < 65:
+            dr_grade = "穩健（<65%）"
+        elif dr_l < 75:
+            dr_grade = "適中（65–75%）"
+        elif dr_l < 80:
+            dr_grade = "偏高（75–80%）"
+        else:
+            dr_grade = "偏高承壓（≥80%）"
+    else:
+        if dr_l < 60:
+            dr_grade = "穩健（<60%）"
+        elif dr_l < 70:
+            dr_grade = "適中（60–70%）"
+        elif dr_l < 75:
+            dr_grade = "偏高（70–75%）"
+        else:
+            dr_grade = "偏高承壓（≥75%）"
+    # KPI 燈號四分色對齊負債健康度
+    if dr_l is None:
+        dr_cls = "orange"
+    elif is_retail:
+        if dr_l < 65:
+            dr_cls = "green"
+        elif dr_l < 75:
+            dr_cls = "yellow"
+        elif dr_l < 80:
+            dr_cls = "orange"
+        else:
+            dr_cls = "red"
+    else:
+        if dr_l < 60:
+            dr_cls = "green"
+        elif dr_l < 70:
+            dr_cls = "yellow"
+        elif dr_l < 75:
+            dr_cls = "orange"
+        else:
+            dr_cls = "red"
 
     # KPI 經營
     has_rd=bool(ser("rd_ratio"))
@@ -256,7 +301,7 @@ def generate(sid):
     # KPI 財務
     k3=f"""<div class="kpi-row">
 <div class="kpi-card {'green' if cr_l and cr_l>150 else 'orange'}"><div class="kpi-label">流動比率</div><div class="kpi-value">{fmt_pct(cr_l)}</div><div class="kpi-change neutral">■ {cr_grade}</div></div>
-<div class="kpi-card {'green' if dr_l and dr_l<60 else 'red'}"><div class="kpi-label">負債比率</div><div class="kpi-value">{fmt_pct(dr_l)}</div><div class="kpi-change neutral">■ {dr_grade}</div></div>
+<div class="kpi-card {dr_cls}"><div class="kpi-label">負債比率</div><div class="kpi-value">{fmt_pct(dr_l)}</div><div class="kpi-change neutral">■ {dr_grade}</div></div>
 <div class="kpi-card {'green' if (L('op_cf') or 0)>0 else 'red'}"><div class="kpi-label">營業現金流 (億元)</div><div class="kpi-value">{fmt(L('op_cf'))}</div><div class="kpi-change neutral">■ 為淨利的 {f"{ocf_ni:.1f} 倍" if ocf_ni is not None else "—"}</div></div>
 <div class="kpi-card {'green' if (L('fcf') or 0)>0 else 'red'}"><div class="kpi-label">自由現金流 (億元)</div><div class="kpi-value">{fmt(L('fcf'))}</div><div class="kpi-change neutral">■ Capex {fmt(L('capex'))} 億</div></div>
 <div class="kpi-card purple"><div class="kpi-label">現金部位 (億元)</div><div class="kpi-value">{fmt(L('cash'))}</div><div class="kpi-change {'up' if (cash_yoy or 0)>0 else 'down'}">{'▲' if (cash_yoy or 0)>0 else '▼'} {cash_yoy:+.1f}% YoY</div></div>
@@ -378,13 +423,14 @@ def generate(sid):
     cfg={"type":"line","data":{"labels":years,"datasets":[{"label":"現金部位","data":g("cash"),"borderColor":"#3182ce","backgroundColor":"rgba(49,130,206,0.1)","fill":True,"tension":0.3},{"label":"自由現金流","data":g("fcf"),"borderColor":"#38a169","borderDash":[5,5],"tension":0.3}]},"options":{**common, "scales":scales}}
     charts.append(wrap("cashChart","現金趨勢",cfg))
 
-    # --- 季月動能（FinMind 季报/月报，仅 2484 新版有）---
+    # --- 季月動能（置頂首位、預設展開；P3：無最新季亦不隱藏，顯示至上一季）---
     has_q = "quarterly" in j and isinstance(j["quarterly"], list) and len(j["quarterly"])>0
     has_m = "monthly" in j and isinstance(j["monthly"], list) and len(j["monthly"])>0
-    momentum_tab=""
-    momentum_content=""
-    if has_q or has_m:
-        momentum_tab = '<div class="tab" onclick="switchTab(\'momentum\')">📈 季月動能</div>'
+    momentum_tab = '<div class="tab active" onclick="switchTab(\'momentum\')">📈 季月動能</div>'
+    momentum_content = ""
+    # 始終產出季月分頁（即使無季月亦給空狀態，不隱藏）；有資料則渲染圖表
+    _has_momentum_data = has_q or has_m
+    if _has_momentum_data:
         m_charts=[]
         if has_q:
             q = j["quarterly"]
@@ -407,8 +453,30 @@ def generate(sid):
                 for i in range(len(q_rev)):
                     if i==0 or q_rev[i] is None or q_rev[i-1] in (None,0): qoq.append(None)
                     else: qoq.append((q_rev[i]/q_rev[i-1]-1)*100)
-            cfg3={"type":"bar","data":{"labels":q_labels,"datasets":[{"label":"QoQ (%)","data":qoq,"backgroundColor":["rgba(56,161,105,0.6)" if (v or 0)>0 else "rgba(229,62,62,0.6)" for v in qoq],"borderColor":"#3182ce","borderWidth":1}]},"options":{**common, "scales":{"x":{"grid":{"display":False}},"y":{"ticks":{"callback":"__PCT__"}}}}}
-            m_charts.append(wrap("qqQoqChart","單季營收 QoQ",cfg3))
+            # QoQ 雙軸組合：單季營收(bar,y) + QoQ(line,y2)，沿用 MoM 配色與分段邏輯
+            qoq_point_bg = ["#38a169" if (v or 0) > 0 else "#e53e3e" if (v or 0) < 0 else "rgba(0,0,0,0)" for v in qoq]
+            qoq_point_border = qoq_point_bg
+            scales_qoq={"x":{"grid":{"display":False}},"y":{"grid":{"color":"rgba(0,0,0,0.05)"},"title":{"display":True,"text":"億元"}},"y2":{"position":"right","grid":{"display":False},"ticks":{"callback":"__PCT__"},"title":{"display":True,"text":"%"}}}
+            cfg3={
+                "type":"bar",
+                "data":{
+                    "labels":q_labels,
+                    "datasets":[
+                        {"label":"單季營收 (億元)","data":q_rev,"backgroundColor":"rgba(49,130,206,0.15)","borderColor":"#3182ce","borderWidth":2,"yAxisID":"y"},
+                        {"label":"QoQ (%)","data":qoq,"type":"line","borderColor":"#dd6b20","backgroundColor":"#dd6b20","pointBackgroundColor":qoq_point_bg,"pointBorderColor":qoq_point_border,"pointRadius":4,"pointHoverRadius":6,"borderWidth":2,"tension":0.3,"yAxisID":"y2","segment":{"borderColor":"__SEGMENT_MOM__"}}
+                    ]
+                },
+                "options":{
+                    **common,
+                    "scales":scales_qoq,
+                    "interaction":{"mode":"index","intersect":False},
+                    "plugins":{
+                        "legend":{"position":"bottom"},
+                        "tooltip":{"mode":"index","intersect":False,"callbacks":{"label":"__TOOLTIP_LABEL__"}}
+                    }
+                }
+            }
+            m_charts.append(wrap("qqQoqChart","單季營收與 QoQ（近8季）",cfg3))
         if has_m:
             m_data=j["monthly"]
             m_labels=[x.get("date","") for x in m_data]
@@ -524,7 +592,10 @@ def generate(sid):
                 return ("neutral","■ 持平")
         # 最新一季置頂（與年報精神一致：最新在前便於對比近期動能）
         rows_html="".join(f"<tr><td>{x.get('label')}</td><td>{(x.get('revenue',0)/1e8 if abs(x.get('revenue',0))>1e6 else x.get('revenue') or 0):.2f}</td><td>{(x.get('gross_margin') or 0):.1f}%</td><td>{(x.get('net_income',0)/1e8 if abs(x.get('net_income',0))>1e6 else x.get('net_income') or 0):.2f}</td><td>{(x.get('net_margin') or 0):.1f}%</td><td>{x.get('eps')}</td><td class=\"{q_trend(len(j["quarterly"])-1-idx)[0]}\">{q_trend(len(j["quarterly"])-1-idx)[1]}</td></tr>" for idx, x in enumerate(reversed(j["quarterly"])))
-        momentum_content=f'<div id="momentum" class="tab-content"><div class="insight-box"><h3>季月動能亮點</h3>{momentum_insight}</div><div class="charts-grid">{momentum_charts}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>季度</th><th>營收(億)</th><th>毛利率</th><th>淨利(億)</th><th>淨利率</th><th>EPS</th><th>趨勢評估</th></tr></thead><tbody>'+rows_html+'</tbody></table></div></div>'
+        momentum_content=f'<div id="momentum" class="tab-content active"><div class="insight-box"><h3>季月動能亮點</h3>{momentum_insight}</div><div class="charts-grid">{momentum_charts}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>季度</th><th>營收(億)</th><th>毛利率</th><th>淨利(億)</th><th>淨利率</th><th>EPS</th><th>趨勢評估</th></tr></thead><tbody>'+rows_html+'</tbody></table></div></div>'
+    else:
+        # P3：無季月資料亦不隱藏，顯示至上一季狀態（空狀態）
+        momentum_content=f'<div id="momentum" class="tab-content active"><div class="insight-box"><h3>季月動能亮點</h3><ul><li>季月數據截至上一季，尚無新一季申報</li></ul></div><div style="text-align:center;padding:24px;color:#718096;font-size:0.88rem;">本期季月資料暫未更新，圖表將於申報後自動補齊</div></div>'
     ops_charts="".join(charts[0:4])
     profit_charts="".join(charts[4:8])
     fin_charts="".join(charts[8:12])
@@ -561,10 +632,11 @@ def generate(sid):
 <div class="header"><div><h1>{name} ({sid}) 財務分析儀表板</h1><div class="subtitle">資料來源：FinMind 主力 + Goodinfo 費用細拆{subtitle_extra}｜分析期間：{years[0]} – {years[-1]}｜金額單位：億元 (NTD)</div></div><div class="badge">🏢 {INDUSTRY.get(sid,'上市櫃公司')}</div></div>
 <div class="verify-bar">{sanity_badge}<span>抓取時間：{fetched}</span><a href="{gi['income_statement']}" target="_blank">🔍 Goodinfo 原始數據</a><a href="{mops}" target="_blank">📋 MOPS 官方申報</a><a href="index.html">← 回總覽</a></div>
 {warn_html}
-<div class="tabs"><div class="tab active" onclick="switchTab('ops')">📊 經營分析</div><div class="tab" onclick="switchTab('profit')">💰 獲利分析</div><div class="tab" onclick="switchTab('finance')">🏦 財務健全度</div>{momentum_tab}</div>
-<div id="ops" class="tab-content active">{k1}<div class="insight-box"><h3>🔍 經營亮點</h3>{ins1}</div><div class="charts-grid">{ops_charts}</div><div class="table-wrap">{t1}</div></div>
+<div class="tabs">{momentum_tab}<div class="tab" onclick="switchTab('ops')">📊 經營分析</div><div class="tab" onclick="switchTab('profit')">💰 獲利分析</div><div class="tab" onclick="switchTab('finance')">🏦 財務健全度</div></div>
+{momentum_content}
+<div id="ops" class="tab-content">{k1}<div class="insight-box"><h3>🔍 經營亮點</h3>{ins1}</div><div class="charts-grid">{ops_charts}</div><div class="table-wrap">{t1}</div></div>
 <div id="profit" class="tab-content">{k2}<div class="insight-box"><h3>🔍 獲利亮點</h3>{ins2}</div><div class="charts-grid">{profit_charts}</div><div class="table-wrap">{t2}</div></div>
-<div id="finance" class="tab-content">{k3}<div class="insight-box"><h3>🔍 財務健全度亮點</h3>{ins3}</div><div class="charts-grid">{fin_charts}</div><div class="finance-tables"><div class="table-wrap">{bs_t}</div><div class="table-wrap">{cf_t}</div></div></div>{momentum_content}
+<div id="finance" class="tab-content">{k3}<div class="insight-box"><h3>🔍 財務健全度亮點</h3>{ins3}</div><div class="charts-grid">{fin_charts}</div><div class="finance-tables"><div class="table-wrap">{bs_t}</div><div class="table-wrap">{cf_t}</div></div></div>
 <div style="text-align:center;padding:20px;color:#a0aec0;font-size:0.78rem;">本報告由 taiwan-stock-analysis skill 自動生成｜僅供參考，非投資建議</div>
 <script>
 function switchTab(name) {{

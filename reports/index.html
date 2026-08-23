@@ -19,7 +19,7 @@
         table { width: 100%; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-collapse: collapse; }
         th { background: #2b6cb0; color: white; padding: 14px 16px; text-align: left; font-weight: 600; font-size: 0.88rem; white-space: nowrap; }
         th.light-col { width: 110px; min-width: 110px; text-align: center; }
-        th.summary-col { min-width: 240px; }
+        th.summary-col { min-width: 360px; }
         td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 0.88rem; }
         tr:hover td { background: #f7fafc; }
         a { color: #3182ce; text-decoration: none; }
@@ -34,7 +34,7 @@
         .light.green { background: #c6f6d5; }
         .light.blue { background: #bee3f8; }
         .light.gray { background: #e2e8f0; }
-        .summary { color: #4a5568; font-size: 0.82rem; line-height: 1.4; max-width: 420px; }
+        .summary { color: #4a5568; font-size: 0.84rem; line-height: 1.55; max-width: 480px; white-space: normal; word-break: break-word; }
         .legend { display: flex; gap: 12px; align-items: center; justify-content: center; margin: 14px 0 6px; font-size: 0.78rem; color: #718096; flex-wrap: wrap; }
         .legend span { display: inline-flex; align-items: center; gap: 4px; }
         .legend i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
@@ -44,7 +44,7 @@
             .header { padding: 18px 16px; min-width: 560px; width: 100%; }
             table { font-size: 0.8rem; min-width: 560px; }
             th, td { padding: 10px 8px; }
-            .summary { font-size: 0.76rem; max-width: 160px; }
+            .summary { font-size: 0.76rem; max-width: 220px; line-height: 1.5; }
         }
     </style>
 </head>
@@ -52,7 +52,7 @@
     <div class="container">
         <div class="header">
             <h1>台股財務分析儀表板</h1>
-            <div class="subtitle">自動生成的三維財務分析報告總覽｜最後更新：2026-08-22 14:23｜燈號：左「年燈號」長線體質(ROE/淨利/負債) / 右「季月燈號」短線動能(QoQ/YoY/MoM)</div>
+            <div class="subtitle">自動生成的三維財務分析報告總覽｜最後更新：2026-08-23 12:13｜燈號：左「年燈號」長線體質(ROE/淨利/負債) / 右「季月燈號」短線動能(QoQ/YoY/MoM)｜摘要：長線；短線一句話直覺詮釋雙燈號因果</div>
         </div>
 <table>
             <thead>
@@ -69,70 +69,84 @@
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+17%">🟠</span><span class="light green" title="年獲利偏低｜季月轉強 QoQ+17%" style="margin-left:4px;">🟢</span></td>
             <td><a href="2484_希華_analysis.html">2484</a></td>
             <td><a href="2484_希華_analysis.html">希華</a></td>
-            <td class="summary">營收24億 +10.1%｜EPS0.7 ROE3%｜負債19%</td>
+            <td class="summary">長線獲利偏低（ROE3%）體質待改善；短線動能轉強（QoQ+17%）。營收24億 +10.1%｜EPS0.7 ROE3%｜負債19%穩健。</td>
             <td><a href="2484_希華_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+17% YoY-56%">🟠</span><span class="light green" title="年獲利偏低｜季月轉強 QoQ+17% YoY-56%" style="margin-left:4px;">🟢</span></td>
             <td><a href="2540_愛山林_analysis.html">2540</a></td>
             <td><a href="2540_愛山林_analysis.html">愛山林</a></td>
-            <td class="summary">營收113億 +1.3%｜EPS 0.69 驟降｜ROE 3.9% 現金吃緊</td>
+            <td class="summary">長線獲利偏低（ROE4%）體質待改善；短線動能轉強（QoQ+17% YoY-56%）。營收113億 +1.3%｜EPS0.97 驟降 ROE3.9%｜負債73%偏高。</td>
             <td><a href="2540_愛山林_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+22% YoY+22%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+22% YoY+22%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2603_長榮_analysis.html">2603</a></td>
             <td><a href="2603_長榮_analysis.html">長榮</a></td>
-            <td class="summary">營收3791億 -18.2%｜EPS31.7 ROE12%｜負債34%</td>
+            <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+22% YoY+22%）。營收3791億 -18.2%｜EPS31.7 ROE12%｜負債34%穩健。</td>
             <td><a href="2603_長榮_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
-            <td class="light-cell"><span class="light blue" title="年優異｜季月轉強 QoQ+24% YoY+17%">🔵</span><span class="light blue" title="年優異｜季月轉強 QoQ+24% YoY+17%" style="margin-left:4px;">🔵</span></td>
+            <td class="light-cell"><span class="light green" title="年良好｜季月轉強 QoQ+24% YoY+17%">🟢</span><span class="light blue" title="年良好｜季月轉強 QoQ+24% YoY+17%" style="margin-left:4px;">🔵</span></td>
             <td><a href="3005_神基_analysis.html">3005</a></td>
             <td><a href="3005_神基_analysis.html">神基</a></td>
-            <td class="summary">營收394億 +10.6%｜EPS8.4 ROE19%｜負債42%</td>
+            <td class="summary">長線體質良好，獲利穩健；短線動能轉強（QoQ+24% YoY+17%）。營收394億 +10.6%｜EPS8.4 ROE18%｜負債42%穩健。</td>
             <td><a href="3005_神基_analysis.html" class="btn">查看分析</a></td>
+        </tr>
+        <tr>
+            <td class="light-cell"><span class="light red" title="年負債77%偏高｜季月轉強 QoQ+6% YoY+62%">🔴</span><span class="light green" title="年負債77%偏高｜季月轉強 QoQ+6% YoY+62%" style="margin-left:4px;">🟢</span></td>
+            <td><a href="3231_緯創_analysis.html">3231</a></td>
+            <td><a href="3231_緯創_analysis.html">緯創</a></td>
+            <td class="summary">長線負債77%偏高，體質承壓；短線動能轉強（QoQ+6% YoY+62%）。營收21865億 +108.4%｜EPS9.0 ROE11%｜負債77%偏高承壓。</td>
+            <td><a href="3231_緯創_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+19% YoY+20%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+19% YoY+20%" style="margin-left:4px;">🔵</span></td>
             <td><a href="3605_宏致_analysis.html">3605</a></td>
             <td><a href="3605_宏致_analysis.html">宏致</a></td>
-            <td class="summary">營收109億 +11.1%｜EPS4.3 ROE8%｜負債47%</td>
+            <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+19% YoY+20%）。營收109億 +11.1%｜EPS4.3 ROE8%｜負債47%穩健。</td>
             <td><a href="3605_宏致_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
             <td class="light-cell"><span class="light green" title="年良好｜季月震盪 QoQ+7% YoY-17%">🟢</span><span class="light yellow" title="年良好｜季月震盪 QoQ+7% YoY-17%" style="margin-left:4px;">🟡</span></td>
             <td><a href="4721_美琪瑪_analysis.html">4721</a></td>
             <td><a href="4721_美琪瑪_analysis.html">美琪瑪</a></td>
-            <td class="summary">營收25億 +19.3%｜EPS3.0 ROE17%｜負債39%</td>
+            <td class="summary">長線體質良好，獲利穩健；短線動能震盪（QoQ+7% YoY-17%）。營收25億 +19.3%｜EPS3.0 ROE17%｜負債39%穩健。</td>
             <td><a href="4721_美琪瑪_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+9% 月均+7%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+9% 月均+7%" style="margin-left:4px;">🔵</span></td>
             <td><a href="5243_乙盛-KY_analysis.html">5243</a></td>
             <td><a href="5243_乙盛-KY_analysis.html">乙盛-KY</a></td>
-            <td class="summary">營收121億 -7.7%｜EPS4.4 ROE9%｜負債40%</td>
+            <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+9% 月均+7%）。營收121億 -7.7%｜EPS4.4 ROE9%｜負債40%穩健。</td>
             <td><a href="5243_乙盛-KY_analysis.html" class="btn">查看分析</a></td>
+        </tr>
+        <tr>
+            <td class="light-cell"><span class="light yellow" title="年中性｜季月震盪 QoQ-24% YoY+423%">🟡</span><span class="light yellow" title="年中性｜季月震盪 QoQ-24% YoY+423%" style="margin-left:4px;">🟡</span></td>
+            <td><a href="5386_青雲_analysis.html">5386</a></td>
+            <td><a href="5386_青雲_analysis.html">青雲</a></td>
+            <td class="summary">長線體質中性，獲利持平；短線動能震盪（QoQ-24% YoY+423%）。營收59億 +32.6%｜EPS8.8 ROE33%｜負債75%偏高。</td>
+            <td><a href="5386_青雲_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
             <td class="light-cell"><span class="light green" title="年良好｜季月震盪 YoY+15%">🟢</span><span class="light yellow" title="年良好｜季月震盪 YoY+15%" style="margin-left:4px;">🟡</span></td>
             <td><a href="5904_寶雅_analysis.html">5904</a></td>
             <td><a href="5904_寶雅_analysis.html">寶雅</a></td>
-            <td class="summary">營收253億 +7.2%｜EPS 29.5 ROE 39%｜毛利率穩 45%</td>
+            <td class="summary">長線體質良好，獲利穩健；短線動能震盪（YoY+15%）。營收253億 +7.2%｜EPS29.6 ROE39% 毛利率45%｜負債74%適中。</td>
             <td><a href="5904_寶雅_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
             <td class="light-cell"><span class="light blue" title="年優異｜季月轉強 YoY+18% 月均+8%">🔵</span><span class="light green" title="年優異｜季月轉強 YoY+18% 月均+8%" style="margin-left:4px;">🟢</span></td>
             <td><a href="6782_視陽_analysis.html">6782</a></td>
             <td><a href="6782_視陽_analysis.html">視陽</a></td>
-            <td class="summary">營收42億 +15.0%｜EPS14.1 ROE20%｜負債26%</td>
+            <td class="summary">長線體質優異，獲利與負債皆健康；短線動能轉強（YoY+18% 月均+8%）。營收42億 +15.0%｜EPS14.1 ROE20%｜負債26%穩健。</td>
             <td><a href="6782_視陽_analysis.html" class="btn">查看分析</a></td>
         </tr>
         <tr>
             <td class="light-cell"><span class="light green" title="年良好｜季月轉強 QoQ+18%">🟢</span><span class="light green" title="年良好｜季月轉強 QoQ+18%" style="margin-left:4px;">🟢</span></td>
             <td><a href="8069_元太_analysis.html">8069</a></td>
             <td><a href="8069_元太_analysis.html">元太</a></td>
-            <td class="summary">營收361億 +12%｜電子紙龍頭 ROE 24%｜毛利率54%佳</td>
+            <td class="summary">長線體質良好，獲利穩健；短線動能轉強（QoQ+18%）。營收361億 +12.3%｜EPS9.1 ROE15% 毛利率54%｜負債35%穩健。</td>
             <td><a href="8069_元太_analysis.html" class="btn">查看分析</a></td>
         </tr>
             </tbody>

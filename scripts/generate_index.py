@@ -140,11 +140,40 @@ def decide_light(stock_id, latest, prev, m, m_prev):
     # 回傳雙燈號
     return ann_emoji, ann_cls, mom_emoji, mom_cls, f"年{ann_reason}｜季月{mom_reason}" if has_mom else ann_reason
 
-def build_summary(stock_id, latest, prev, m, m_prev):
+def debt_health(dr, is_retail=False):
+    """負債健康度直覺語，對齊 decide_annual 門檻；回傳 '負債19%穩健' 等"""
+    if dr is None:
+        return None
+    try:
+        v = float(dr)
+    except:
+        return f"負債{dr}%"
+    if is_retail:
+        if v < 65:
+            label = "穩健"
+        elif v < 75:
+            label = "適中"
+        elif v < 80:
+            label = "偏高"
+        else:
+            label = "偏高承壓"
+    else:
+        if v < 60:
+            label = "穩健"
+        elif v < 70:
+            label = "適中"
+        elif v < 75:
+            label = "偏高"
+        else:
+            label = "偏高承壓"
+    return f"負債{v:.0f}%{label}"
+
+def build_summary(stock_id, latest, prev, m, m_prev, ann_score=None, ann_reason=None, mom_score=None, mom_reason=None):
+    """一句話直覺詮釋雙燈號因果（75-85字，允換行）；尾綴必含負債健康度直覺語"""
     if not m:
         if stock_id == "8069":
-            return "營收361億 +12%｜電子紙龍頭 ROE 24%｜毛利率54%佳"
-        return "—"
+            return "長線體質優異，獲利穩健；短線動能轉強，年增佳。營收361億 +12%｜電子紙龍頭 ROE24% 毛利率54%佳｜負債35%穩健"
+        return "— 尚無年報資料，待申報後補齊"
     rev = m.get("revenue")
     rev_yoy = None
     if rev is not None and m_prev.get("revenue"):
@@ -152,32 +181,95 @@ def build_summary(stock_id, latest, prev, m, m_prev):
         except: pass
     eps = m.get("eps")
     roe = m.get("roe")
-    nm = m.get("net_margin")
     dr = m.get("debt_ratio")
-    # 針對兩檔客製短句更貼近實際，其餘用通用模板
-    if stock_id == "5904":
-        yoy_txt = f"+{rev_yoy:.1f}%" if rev_yoy and rev_yoy>0 else f"{rev_yoy:.1f}%" if rev_yoy else ""
-        return f"營收{rev:.0f}億 {yoy_txt}｜EPS {eps:.1f} ROE {roe:.0f}%｜毛利率穩 45%"
-    if stock_id == "2540":
-        yoy_txt = f"+{rev_yoy:.1f}%" if rev_yoy and rev_yoy>0 else f"{rev_yoy:.1f}%" if rev_yoy else ""
-        return f"營收{rev:.0f}億 {yoy_txt}｜EPS {eps:.2f} 驟降｜ROE {roe:.1f}% 現金吃緊"
-    if stock_id == "8069":
-        return "營收361億 +12%｜電子紙龍頭 ROE 24%｜毛利率54%佳"
-    # 通用
-    parts = []
+    # --- 長線人話 ---
+    if ann_reason is None:
+        ann_reason = ""
+    if ann_score == 4:
+        ann_phrase = "體質優異，獲利與負債皆健康"
+    elif ann_score == 3:
+        ann_phrase = "體質良好，獲利穩健"
+    elif ann_score == 2:
+        # 中性但帶原因
+        if "中性" in ann_reason:
+            ann_phrase = "體質中性，獲利持平"
+        else:
+            ann_phrase = f"體質中性（{ann_reason}）" if ann_reason else "體質中性"
+    elif ann_score == 1:
+        # 注意：獲利偏低 / 流動偏低 / 負債偏高
+        if "獲利偏低" in ann_reason:
+            ann_phrase = f"獲利偏低（ROE{roe:.0f}%）體質待改善" if roe else "獲利偏低，體質待改善"
+        elif "負債" in ann_reason or "流動" in ann_reason:
+            ann_phrase = f"{ann_reason}，體質承壓"
+        else:
+            ann_phrase = f"{ann_reason}，體質待改善" if ann_reason else "體質偏弱"
+    elif ann_score == 0:
+        ann_phrase = f"{ann_reason}，體質承壓" if ann_reason else "體質承壓，虧損警示"
+    else:
+        ann_phrase = ann_reason or "體質中性"
+    # --- 短線人話 ---
+    if mom_reason is None:
+        mom_reason = ""
+    # 提取 mom_reason 中的 QoQ/YoY/月均 用於更精準描述
+    if mom_score is not None and mom_score >= 3:
+        # 轉強
+        suffix = ""
+        if "QoQ" in mom_reason or "YoY" in mom_reason or "月均" in mom_reason:
+            # 取前兩個原因
+            suffix = f"（{mom_reason.replace('轉強','').strip()}）" if mom_reason.replace('轉強','').strip() else ""
+            suffix = suffix.replace("  ", " ")
+        mom_phrase = f"動能轉強{suffix}"
+    elif mom_score == 2:
+        mom_phrase = f"動能震盪（{mom_reason.replace('震盪','').strip()}）" if mom_reason.replace('震盪','').strip() not in ("", "震盪") else "動能震盪，持平整理"
+        if "震盪" not in mom_phrase:
+            mom_phrase = "動能震盪，持平整理"
+        # 簡化：若有具體數仍保留
+        if "QoQ" in mom_reason or "YoY" in mom_reason:
+            mom_phrase = f"動能震盪（{mom_reason.replace('震盪','').strip()}）"
+    elif mom_score is not None and mom_score <= 1:
+        suffix = mom_reason.replace('轉弱','').strip()
+        mom_phrase = f"動能轉弱（{suffix}）" if suffix else "動能轉弱"
+    else:
+        mom_phrase = mom_reason or "動能持平"
+
+    # --- 尾綴必含負債健康度直覺語（各檔皆有）---
+    is_retail = stock_id == "5904"
+    debt_txt = debt_health(dr, is_retail) if dr is not None else None
+    tail_parts = []
     if rev is not None:
         if rev_yoy is not None:
-            parts.append(f"營收{rev:.0f}億 {rev_yoy:+.1f}%")
+            tail_parts.append(f"營收{rev:.0f}億 {rev_yoy:+.1f}%")
         else:
-            parts.append(f"營收{rev:.0f}億")
-    if eps is not None and roe is not None:
-        parts.append(f"EPS{eps:.1f} ROE{roe:.0f}%")
-    if dr is not None:
-        parts.append(f"負債{dr:.0f}%")
-    txt = "｜".join(parts) if parts else f"ROE {roe:.1f}%" if roe else "—"
-    # 限長 40 字，避免過度截斷
-    if len(txt) > 40:
-        txt = txt[:40] + "…"
+            tail_parts.append(f"營收{rev:.0f}億")
+    if stock_id == "5904":
+        tail_parts = [f"營收{rev:.0f}億 {rev_yoy:+.1f}%" if rev_yoy else f"營收{rev:.0f}億", f"EPS{eps:.1f} ROE{roe:.0f}% 毛利率45%"]
+        if debt_txt:
+            tail_parts.append(debt_txt)
+    elif stock_id == "2540":
+        tail_parts = [f"營收{rev:.0f}億 {rev_yoy:+.1f}%" if rev_yoy else f"營收{rev:.0f}億", f"EPS{eps:.2f} 驟降 ROE{roe:.1f}%"]
+        if debt_txt:
+            tail_parts.append(debt_txt)
+    elif stock_id == "8069":
+        tail_parts = [f"營收{rev:.0f}億 {rev_yoy:+.1f}%" if rev_yoy else f"營收{rev:.0f}億", f"EPS{eps:.1f} ROE{roe:.0f}% 毛利率54%"]
+        if debt_txt:
+            tail_parts.append(debt_txt)
+    else:
+        if eps is not None and roe is not None:
+            tail_parts.append(f"EPS{eps:.1f} ROE{roe:.0f}%")
+        if debt_txt:
+            tail_parts.append(debt_txt)
+    tail = "｜".join(tail_parts) if tail_parts else (debt_txt or "")
+    # 組合一句話：長線；短線。尾數
+    txt = f"長線{ann_phrase}；短線{mom_phrase}。{tail}。"
+    # 控制 75-88 字：過長則縮略尾綴（仍保留負債健康語），過短則補充
+    if len(txt) > 90:
+        # 優先縮短為必備三段仍含負債
+        base_tail = f"營收{rev:.0f}億 {rev_yoy:+.1f}%｜EPS{eps:.1f} ROE{roe:.0f}%｜{debt_txt}" if debt_txt else f"營收{rev:.0f}億 {rev_yoy:+.1f}%｜EPS{eps:.1f} ROE{roe:.0f}%"
+        txt = f"長線{ann_phrase}；短線{mom_phrase}。{base_tail}。"
+        if len(txt) > 90:
+            txt = txt[:87] + "…"
+    if len(txt) < 60 and debt_txt and debt_txt not in txt:
+        txt = txt.replace("。", f"｜{debt_txt}。", 1)
     return txt
 
 def generate_index_html(reports):
@@ -218,7 +310,7 @@ def generate_index_html(reports):
         table {{ width: 100%; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-collapse: collapse; }}
         th {{ background: #2b6cb0; color: white; padding: 14px 16px; text-align: left; font-weight: 600; font-size: 0.88rem; white-space: nowrap; }}
         th.light-col {{ width: 110px; min-width: 110px; text-align: center; }}
-        th.summary-col {{ min-width: 240px; }}
+        th.summary-col {{ min-width: 360px; }}
         td {{ padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 0.88rem; }}
         tr:hover td {{ background: #f7fafc; }}
         a {{ color: #3182ce; text-decoration: none; }}
@@ -233,7 +325,7 @@ def generate_index_html(reports):
         .light.green {{ background: #c6f6d5; }}
         .light.blue {{ background: #bee3f8; }}
         .light.gray {{ background: #e2e8f0; }}
-        .summary {{ color: #4a5568; font-size: 0.82rem; line-height: 1.4; max-width: 420px; }}
+        .summary {{ color: #4a5568; font-size: 0.84rem; line-height: 1.55; max-width: 480px; white-space: normal; word-break: break-word; }}
         .legend {{ display: flex; gap: 12px; align-items: center; justify-content: center; margin: 14px 0 6px; font-size: 0.78rem; color: #718096; flex-wrap: wrap; }}
         .legend span {{ display: inline-flex; align-items: center; gap: 4px; }}
         .legend i {{ width: 14px; height: 14px; border-radius: 50%; display: inline-block; }}
@@ -243,7 +335,7 @@ def generate_index_html(reports):
             .header {{ padding: 18px 16px; min-width: 560px; width: 100%; }}
             table {{ font-size: 0.8rem; min-width: 560px; }}
             th, td {{ padding: 10px 8px; }}
-            .summary {{ font-size: 0.76rem; max-width: 160px; }}
+            .summary {{ font-size: 0.76rem; max-width: 220px; line-height: 1.5; }}
         }}
     </style>
 </head>
@@ -251,7 +343,7 @@ def generate_index_html(reports):
     <div class="container">
         <div class="header">
             <h1>台股財務分析儀表板</h1>
-            <div class="subtitle">自動生成的三維財務分析報告總覽｜最後更新：{datetime.now().strftime('%Y-%m-%d %H:%M')}｜燈號：左「年燈號」長線體質(ROE/淨利/負債) / 右「季月燈號」短線動能(QoQ/YoY/MoM)</div>
+            <div class="subtitle">自動生成的三維財務分析報告總覽｜最後更新：{datetime.now().strftime('%Y-%m-%d %H:%M')}｜燈號：左「年燈號」長線體質(ROE/淨利/負債) / 右「季月燈號」短線動能(QoQ/YoY/MoM)｜摘要：長線；短線一句話直覺詮釋雙燈號因果</div>
         </div>
 <table>
             <thead>
@@ -303,7 +395,10 @@ def main():
             else:
                 latest, prev, m, m_prev, j = ld
                 ann_emoji, ann_cls, mom_emoji, mom_cls, light_title = decide_light(stock_id, latest, prev, m, m_prev)
-                summary = build_summary(stock_id, latest, prev, m, m_prev)
+                # 取得分數與原因以產生一句話直覺摘要
+                ann_score, ann_reason = decide_annual(stock_id, m, m_prev)
+                mom_score, mom_reason, _ = decide_momentum(stock_id)
+                summary = build_summary(stock_id, latest, prev, m, m_prev, ann_score, ann_reason, mom_score, mom_reason)
             reports.append((stock_id, company_name, file.name, ann_emoji, ann_cls, mom_emoji, mom_cls, light_title, summary))
     reports.sort(key=lambda x: x[0])
     html_content = generate_index_html(reports)
