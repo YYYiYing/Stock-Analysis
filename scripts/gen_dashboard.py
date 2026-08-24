@@ -117,6 +117,12 @@ def fmt(v, dp=0):
     return f"{v:,.{dp}f}"
 def fmt_pct(v, dp=1):
     return "— <span style='font-size:0.75em;color:#a0aec0'>資料暫缺</span>" if v is None else f"{v:.{dp}f}%"
+def fmt_yoy(v):
+    return f"▲ {v:+.1f}% YoY" if isinstance(v,(int,float)) else "— <span style='font-size:0.75em;color:#a0aec0'>資料暫缺</span>"
+def fmt_pp(v):
+    return f"{v:+.1f}pp" if isinstance(v,(int,float)) else "— <span style='font-size:0.75em;color:#a0aec0'>資料暫缺</span>"
+def fmt_cagr(v):
+    return f"{v:+.1f}%" if isinstance(v,(int,float)) else "— <span style='font-size:0.75em;color:#a0aec0'>資料暫缺</span>" 
 def warn_icon(field, year, cross_warnings):
     """若該 field+year 在 cross_source_warnings 中，回傳 ⚠️ 圖示與 tooltip，否則空字串"""
     for w in (cross_warnings or []):
@@ -157,6 +163,7 @@ def generate(sid):
     name=j.get("company", sid)
     # 兼容新舊 years 排序：舊檔為降冪['2025','2024',...]，新檔為升冪['2020',...,'2026']，一律取最近三年
     years=sorted(j["years"])[-3:]
+    py = years[-2] if len(years)>=2 else None  # 真實性：不足2年時不假造前一年標籤
     M=j["metrics"]
     md=j.get("metadata",{})
     ver=j.get("verification", {"sanity_pass": True, "sanity": []})
@@ -184,7 +191,7 @@ def generate(sid):
     div_series=div_cash_series  # 兼容舊變數
     g=lambda k: [M[y].get(k) for y in years]
     L=lambda k: M[years[-1]].get(k)
-    P=lambda k: M[years[-2]].get(k)
+    P=lambda k: M[years[-2]].get(k) if len(years)>=2 else None
     yoy=lambda k: (L(k)/P(k)-1)*100 if (L(k) and P(k)) else None
     dpp=lambda k: (L(k)-P(k)) if (L(k) is not None and P(k) is not None) else None
     ser=lambda k: [x for x in g(k) if x is not None]
@@ -194,7 +201,7 @@ def generate(sid):
         for k,v in is_data.items():
             if any(w in k for w in kws):
                 return [v.get(y) for y in years]
-        return [None]*3
+        return [None]*len(years)
     cost_series=[ (M[y]["revenue"]-M[y]["gross_profit"]) if (M[y].get("revenue") is not None and M[y].get("gross_profit") is not None) else None for y in years]
     pretax_series=pick_raw("稅前淨利")
     tax_series=pick_raw("所得稅")
@@ -232,8 +239,15 @@ def generate(sid):
     eps_est_note = f"｜EPS 估算年：{','.join(eps_estimated_years)}（季加總，僅供參考）" if eps_estimated_years else ""
 
     rev_yoy=yoy("revenue")
-    try: rev_cagr=((L("revenue")/M[years[0]]["revenue"])**0.5-1)*100
-    except: rev_cagr=0
+    # 真實性：CAGR 僅在有3年完整樣本時計算；1-2年顯示 — 資料暫缺，不捏造
+    rev_cagr = None
+    try:
+        if len(years)>=3 and M[years[0]].get("revenue") and L("revenue"):
+            rev_cagr=((L("revenue")/M[years[0]]["revenue"])**0.5-1)*100
+        elif len(years)==2 and M[years[0]].get("revenue") and L("revenue"):
+            rev_cagr=(L("revenue")/M[years[0]]["revenue"]-1)*100
+    except:
+        rev_cagr=None
     gm_d=dpp("gross_margin"); opex_d=dpp("total_opex_ratio"); om_d=dpp("op_margin")
     ni_yoy=yoy("net_income"); eps_yoy=yoy("eps"); roe_d=dpp("roe"); nm_d=dpp("net_margin")
     _last_cash = div_cash_series[-1]
@@ -293,19 +307,58 @@ def generate(sid):
     k4_lbl="研發費用率" if has_rd else "推銷費用率"
     k4_val=fmt_pct(L("rd_ratio")) if has_rd else fmt_pct(L("sell_ratio"))
     k4_before=fmt_pct(P("rd_ratio")) if has_rd else fmt_pct(P("sell_ratio"))
-    ins4_rd=f"研發費用三年 {fmt(g('rd_exp')[0])} → {fmt(g('rd_exp')[1])} → {fmt(g('rd_exp')[2])} 億，佔營收{fmt_pct(L('rd_ratio'))}，投入強度{'穩定' if abs((dpp('rd_ratio') or 0))<0.5 else '有變化'}" if has_rd else f"推銷費用率 {fmt_pct(g('sell_ratio')[0])} → {fmt_pct(L('sell_ratio'))}、管理費用率 {fmt_pct(g('admin_ratio')[0])} → {fmt_pct(L('admin_ratio'))}（此產業無單獨研發費用列）"
+    # 真實性：依實際年數生成費用文案，不以假值填充
+    _rd_vals = g('rd_exp')
+    _sell_vals = g('sell_ratio')
+    _admin_vals = g('admin_ratio')
+    if has_rd:
+        if len(years)>=3:
+            ins4_rd=f"研發費用三年 {fmt(_rd_vals[0])} → {fmt(_rd_vals[1])} → {fmt(_rd_vals[2])} 億，佔營收{fmt_pct(L('rd_ratio'))}，投入強度{'穩定' if abs((dpp('rd_ratio') or 0))<0.5 else '有變化'}"
+        elif len(years)==2:
+            ins4_rd=f"研發費用兩年 {fmt(_rd_vals[0])} → {fmt(_rd_vals[1])} 億，佔營收{fmt_pct(L('rd_ratio'))}，投入強度{'穩定' if abs((dpp('rd_ratio') or 0))<0.5 else '有變化'}"
+        else:
+            ins4_rd=f"研發費用單年 {fmt(_rd_vals[0])} 億，佔營收{fmt_pct(L('rd_ratio'))}（僅1年樣本）"
+    else:
+        if len(years)>=3:
+            ins4_rd=f"推銷費用率 {fmt_pct(_sell_vals[0])} → {fmt_pct(L('sell_ratio'))}、管理費用率 {fmt_pct(_admin_vals[0])} → {fmt_pct(L('admin_ratio'))}（此產業無單獨研發費用列）"
+        elif len(years)==2:
+            ins4_rd=f"推銷費用率 {fmt_pct(_sell_vals[0])} → {fmt_pct(L('sell_ratio'))}、管理費用率 {fmt_pct(_admin_vals[0])} → {fmt_pct(L('admin_ratio'))}（此產業無單獨研發費用列）"
+        else:
+            ins4_rd=f"推銷費用率 {fmt_pct(L('sell_ratio'))}、管理費用率 {fmt_pct(L('admin_ratio'))}（單年樣本，此產業無單獨研發）"
+    # 真實性：KPI 年對年比較僅在有前一年時顯示，否則標示單年樣本
+    _rev_yoy_txt = f"{fmt_yoy(rev_yoy)}（{py}年{fmt(P('revenue'))}→{years[-1]}年{fmt(L('revenue'))}）" if py else f"{fmt_yoy(rev_yoy)}（單年樣本，YoY資料暫缺）"
+    _gm_txt = f"{'▲' if (gm_d or 0)>0 else '▼'} {py}年{fmt_pct(P('gross_margin'))} → {years[-1]}年{fmt_pct(L('gross_margin'))}" if py else f"— 單年樣本（{fmt_pct(L('gross_margin'))}，趨勢資料暫缺）"
+    _opex_txt = f"{'▼' if (opex_d or 0)<0 else '▲'} {py}年{fmt_pct(P('total_opex_ratio'))} → {years[-1]}年{fmt_pct(L('total_opex_ratio'))}" if py else f"— 單年樣本（{fmt_pct(L('total_opex_ratio'))}）"
+    _om_txt = f"▲ {py}年{fmt_pct(P('op_margin'))} → {years[-1]}年{fmt_pct(L('op_margin'))}" if py else f"— 單年樣本（{fmt_pct(L('op_margin'))}）"
+    _k4_txt = f"■ {py}年{k4_before} → {years[-1]}年{k4_val}" if py else f"■ 單年樣本：{k4_val}"
     k1=f"""<div class="kpi-row">
-<div class="kpi-card {'green' if (rev_yoy or 0)>0 else 'red'}"><div class="kpi-label">營業收入 (億元)</div><div class="kpi-value">{fmt(L('revenue'))}</div><div class="kpi-change {'up' if (rev_yoy or 0)>0 else 'down'}">▲ {rev_yoy:+.1f}% YoY（{years[-2]}年{fmt(P('revenue'))}→{years[-1]}年{fmt(L('revenue'))}）</div></div>
-<div class="kpi-card green"><div class="kpi-label">毛利率</div><div class="kpi-value">{fmt_pct(L('gross_margin'))}</div><div class="kpi-change {'up' if (gm_d or 0)>0 else 'down'}">{'▲' if (gm_d or 0)>0 else '▼'} {years[-2]}年{fmt_pct(P('gross_margin'))} → {years[-1]}年{fmt_pct(L('gross_margin'))}</div></div>
-<div class="kpi-card {'green' if (opex_d or 0)<0 else 'orange'}"><div class="kpi-label">營業費用率</div><div class="kpi-value">{fmt_pct(L('total_opex_ratio'))}</div><div class="kpi-change {'up' if (opex_d or 0)<0 else 'down'}">{'▼' if (opex_d or 0)<0 else '▲'} {years[-2]}年{fmt_pct(P('total_opex_ratio'))} → {years[-1]}年{fmt_pct(L('total_opex_ratio'))}</div></div>
-<div class="kpi-card green"><div class="kpi-label">營業利益率</div><div class="kpi-value">{fmt_pct(L('op_margin'))}</div><div class="kpi-change {'up' if (om_d or 0)>0 else 'down'}">▲ {years[-2]}年{fmt_pct(P('op_margin'))} → {years[-1]}年{fmt_pct(L('op_margin'))}</div></div>
-<div class="kpi-card purple"><div class="kpi-label">{k4_lbl}</div><div class="kpi-value">{k4_val}</div><div class="kpi-change neutral">■ {years[-2]}年{k4_before} → {years[-1]}年{k4_val}</div></div>
+<div class="kpi-card {'green' if (rev_yoy or 0)>0 else 'red'}"><div class="kpi-label">營業收入 (億元)</div><div class="kpi-value">{fmt(L('revenue'))}</div><div class="kpi-change {'up' if (rev_yoy or 0)>0 else 'down'}">{_rev_yoy_txt}</div></div>
+<div class="kpi-card green"><div class="kpi-label">毛利率</div><div class="kpi-value">{fmt_pct(L('gross_margin'))}</div><div class="kpi-change {'up' if (gm_d or 0)>0 else 'down'}">{_gm_txt}</div></div>
+<div class="kpi-card {'green' if (opex_d or 0)<0 else 'orange'}"><div class="kpi-label">營業費用率</div><div class="kpi-value">{fmt_pct(L('total_opex_ratio'))}</div><div class="kpi-change {'up' if (opex_d or 0)<0 else 'down'}">{_opex_txt}</div></div>
+<div class="kpi-card green"><div class="kpi-label">營業利益率</div><div class="kpi-value">{fmt_pct(L('op_margin'))}</div><div class="kpi-change {'up' if (om_d or 0)>0 else 'down'}">{_om_txt}</div></div>
+<div class="kpi-card purple"><div class="kpi-label">{k4_lbl}</div><div class="kpi-value">{k4_val}</div><div class="kpi-change neutral">{_k4_txt}</div></div>
 </div>"""
-    ins1=f"""<ul>
-<li>三年營收 {fmt(M[years[0]]['revenue'])} → {fmt(M[years[1]]['revenue'])} → {fmt(L('revenue'))} 億，CAGR {rev_cagr:+.1f}%，{years[-1]}年 YoY {rev_yoy:+.1f}%</li>
-<li>毛利率三年 {fmt_pct(g('gross_margin')[0])} → {fmt_pct(g('gross_margin')[1])} → {fmt_pct(L('gross_margin'))}，{years[-1]}年 {gm_d:+.1f}pp，{'獲利結構改善' if (gm_d or 0)>0 else '呈現壓縮'}</li>
+    # 真實性：不足3年時誠實告知「資料暫缺」，不以0或假值填充；文案依實際年數動態生成
+    if len(years)>=3:
+        ins1=f"""<ul>
+<li>三年營收 {fmt(M[years[0]]['revenue'])} → {fmt(M[years[1]]['revenue'])} → {fmt(L('revenue'))} 億，CAGR {fmt_cagr(rev_cagr)}，{years[-1]}年 YoY {fmt_yoy(rev_yoy)}</li>
+<li>毛利率三年 {fmt_pct(g('gross_margin')[0])} → {fmt_pct(g('gross_margin')[1])} → {fmt_pct(L('gross_margin'))}，{years[-1]}年 {fmt_pp(gm_d)}，{'獲利結構改善' if (gm_d or 0)>0 else '呈現壓縮'}</li>
 <li>{ins4_rd}</li>
-<li>營業利益率三年 {fmt_pct(g('op_margin')[0])} → {fmt_pct(g('op_margin')[1])} → {fmt_pct(L('op_margin'))}，{years[-1]}年 {om_d:+.1f}pp，{'規模效益顯現' if (om_d or 0)>= (gm_d or 0) else '部分被費用侵蝕'}</li>
+<li>營業利益率三年 {fmt_pct(g('op_margin')[0])} → {fmt_pct(g('op_margin')[1])} → {fmt_pct(L('op_margin'))}，{years[-1]}年 {fmt_pp(om_d)}，{'規模效益顯現' if (om_d or 0)>= (gm_d or 0) else '部分被費用侵蝕'}</li>
+</ul>"""
+    elif len(years)==2:
+        ins1=f"""<ul>
+<li>兩年營收 {fmt(M[years[0]]['revenue'])} → {fmt(L('revenue'))} 億，YoY {fmt_yoy(rev_yoy)}（僅2年樣本，CAGR 暫缺）</li>
+<li>毛利率兩年 {fmt_pct(g('gross_margin')[0])} → {fmt_pct(L('gross_margin'))}，{years[-1]}年 {fmt_pp(gm_d)}，{'獲利結構改善' if (gm_d or 0)>0 else '呈現壓縮'}</li>
+<li>{ins4_rd}</li>
+<li>營業利益率兩年 {fmt_pct(g('op_margin')[0])} → {fmt_pct(L('op_margin'))}，{years[-1]}年 {fmt_pp(om_d)}，{'規模效益顯現' if (om_d or 0)>= (gm_d or 0) else '部分被費用侵蝕'}</li>
+</ul>"""
+    else:
+        ins1=f"""<ul>
+<li>單年營收 {fmt(L('revenue'))} 億（僅1年樣本，YoY/CAGR 資料暫缺 — 新掛牌公司，待後續年報補齊）</li>
+<li>毛利率單年 {fmt_pct(L('gross_margin'))}（僅1年，趨勢資料暫缺）</li>
+<li>{ins4_rd}</li>
+<li>營業利益率單年 {fmt_pct(L('op_margin'))}（僅1年，趨勢資料暫缺）</li>
 </ul>"""
     # KPI 獲利
     _k2_cash_val = f"{_last_cash:.2f}" if isinstance(_last_cash,(int,float)) else ("— <span style='font-size:0.75em;color:#a0aec0'>尚未除息</span>" if _last_cash is None else "-")
@@ -316,28 +369,63 @@ def generate(sid):
             _yield_txt += " <span style='color:#dd6b20;font-size:0.78em'>(預估,隨現價浮動)</span>"
     else:
         _yield_txt = "—"
+    _ni_yoy_txt = f"{fmt_yoy(ni_yoy)}（{py}年{fmt(P('net_income'))}→{years[-1]}年{fmt(L('net_income'))}）" if py else f"{fmt_yoy(ni_yoy)}（單年樣本，YoY資料暫缺）"
+    _roe_txt = f"{'▲' if (roe_d or 0)>0 else '▼'} {py}年{fmt_pct(P('roe'))} → {years[-1]}年{fmt_pct(L('roe'))}" if py else f"— 單年樣本（{fmt_pct(L('roe'))}）"
+    _roa_txt = f"■ {py}年{fmt_pct(P('roa'))} → {years[-1]}年{fmt_pct(L('roa'))}" if py else f"■ 單年樣本（{fmt_pct(L('roa'))}）"
     k2=f"""<div class="kpi-row">
-<div class="kpi-card {'green' if (ni_yoy or 0)>0 else 'red'}"><div class="kpi-label">稅後淨利 (億元)</div><div class="kpi-value">{fmt(L('net_income'))}</div><div class="kpi-change {'up' if (ni_yoy or 0)>0 else 'down'}">▲ {ni_yoy:+.1f}% YoY（{years[-2]}年{fmt(P('net_income'))}→{years[-1]}年{fmt(L('net_income'))}）</div></div>
-<div class="kpi-card {'green' if (eps_yoy or 0)>0 else 'red'}"><div class="kpi-label">EPS (元)</div><div class="kpi-value">{fmt(L('eps'),2)}</div><div class="kpi-change {'up' if (eps_yoy or 0)>0 else 'down'}">▲ {eps_yoy:+.1f}% YoY{'｜創三年新高' if L('eps')==max(x for x in g('eps') if x is not None) else ''}</div></div>
-<div class="kpi-card green"><div class="kpi-label">ROE</div><div class="kpi-value">{fmt_pct(L('roe'))}</div><div class="kpi-change {'up' if (roe_d or 0)>0 else 'down'}">{'▲' if (roe_d or 0)>0 else '▼'} {years[-2]}年{fmt_pct(P('roe'))} → {years[-1]}年{fmt_pct(L('roe'))}</div></div>
-<div class="kpi-card green"><div class="kpi-label">ROA</div><div class="kpi-value">{fmt_pct(L('roa'))}</div><div class="kpi-change neutral">■ {years[-2]}年{fmt_pct(P('roa'))} → {years[-1]}年{fmt_pct(L('roa'))}</div></div>
+<div class="kpi-card {'green' if (ni_yoy or 0)>0 else 'red'}"><div class="kpi-label">稅後淨利 (億元)</div><div class="kpi-value">{fmt(L('net_income'))}</div><div class="kpi-change {'up' if (ni_yoy or 0)>0 else 'down'}">{_ni_yoy_txt}</div></div>
+<div class="kpi-card {'green' if (eps_yoy or 0)>0 else 'red'}"><div class="kpi-label">EPS (元)</div><div class="kpi-value">{fmt(L('eps'),2)}</div><div class="kpi-change {'up' if (eps_yoy or 0)>0 else 'down'}">{fmt_yoy(eps_yoy)}{'｜創三年新高' if L('eps')==max(x for x in g('eps') if x is not None) else ''}</div></div>
+<div class="kpi-card green"><div class="kpi-label">ROE</div><div class="kpi-value">{fmt_pct(L('roe'))}</div><div class="kpi-change {'up' if (roe_d or 0)>0 else 'down'}">{_roe_txt}</div></div>
+<div class="kpi-card green"><div class="kpi-label">ROA</div><div class="kpi-value">{fmt_pct(L('roa'))}</div><div class="kpi-change neutral">{_roa_txt}</div></div>
 <div class="kpi-card purple"><div class="kpi-label">現金股利 (元/股)</div><div class="kpi-value">{_k2_cash_val}</div><div class="kpi-change neutral">■ 配息率約 {f"{payout:.0f}%" if payout else "—"}｜殖利率 {_yield_txt}</div></div>
 </div>"""
     def _fmt_div(v):
         return f"{v:.2f}" if isinstance(v,(int,float)) else "—"
     _has_stock = any(isinstance(x,(int,float)) and x not in (None,0) for x in div_stock_series)
-    _stock_txt = f"（配股 { _fmt_div(div_stock_series[0]) }→{_fmt_div(div_stock_series[1])}→{_fmt_div(div_stock_series[2])} 股）" if _has_stock else ""
+    # 真實性：配股文字依實際年數生成，不假造缺漏年
+    if _has_stock:
+        _stock_parts = "→".join(_fmt_div(v) for v in div_stock_series)
+        _stock_txt = f"（配股 {_stock_parts} 股）"
+    else:
+        _stock_txt = ""
     _yield_list = []
     for v, is_est in zip(div_yield_series, div_yield_is_est):
         if v is None:
             _yield_list.append("—")
         else:
             _yield_list.append(f"{v:.1f}%{'*預估' if is_est else ''}")
-    ins2=f"""<ul>
-<li>三年EPS {fmt(M[years[0]]['eps'],2)} → {fmt(M[years[1]]['eps'],2)} → {fmt(L('eps'),2)}元，CAGR {(((L('eps')/M[years[0]]['eps'])**0.5-1)*100):+.1f}%，{years[-1]}年{'創新高' if L('eps')==max(x for x in g('eps') if x is not None) else '回檔'}</li>
-<li>稅後淨利 {fmt(M[years[0]]['net_income'])} → {fmt(L('net_income'))} 億，{years[-1]}年 YoY {ni_yoy:+.1f}%，淨利率 {fmt_pct(L('net_margin'))}</li>
+    # EPS CAGR 真實性：僅3年可算，2年算YoY，1年暫缺
+    _eps_cagr = None
+    try:
+        if len(years)>=3 and M[years[0]].get('eps') and L('eps'):
+            _eps_cagr=((L('eps')/M[years[0]]['eps'])**0.5-1)*100
+        elif len(years)==2 and M[years[0]].get('eps') and L('eps'):
+            _eps_cagr=(L('eps')/M[years[0]]['eps']-1)*100
+    except:
+        _eps_cagr=None
+    _eps_cagr_txt = fmt_cagr(_eps_cagr)
+    _yield_txt_joined = " → ".join(_yield_list) if _yield_list else "—"
+    _div_cash_joined = " → ".join(_fmt_div(v) for v in div_cash_series)
+    if len(years)>=3:
+        ins2=f"""<ul>
+<li>三年EPS {fmt(M[years[0]]['eps'],2)} → {fmt(M[years[1]]['eps'],2)} → {fmt(L('eps'),2)}元，CAGR {_eps_cagr_txt}，{years[-1]}年{'創新高' if L('eps')==max(x for x in g('eps') if x is not None) else '回檔'}</li>
+<li>稅後淨利 {fmt(M[years[0]]['net_income'])} → {fmt(L('net_income'))} 億，{years[-1]}年 YoY {fmt_yoy(ni_yoy).replace('▲ ','')}，淨利率 {fmt_pct(L('net_margin'))}</li>
 <li>ROE三年 {fmt_pct(g('roe')[0])} → {fmt_pct(g('roe')[1])} → {fmt_pct(L('roe'))}，{'穩定優質' if L('roe') and L('roe')>10 else '待提升'}</li>
-<li>現金股利 {_fmt_div(div_cash_series[0])} → {_fmt_div(div_cash_series[1])} → {_fmt_div(div_cash_series[2])} 元{_stock_txt}，{years[-1]}年配息率約 {f'{payout:.0f}%' if payout else '—'}｜殖利率 {_yield_list[0]} → {_yield_list[1]} → {_yield_list[2]}（*預估為隨現價浮動）</li>
+<li>現金股利 {_div_cash_joined} 元{_stock_txt}，{years[-1]}年配息率約 {f'{payout:.0f}%' if payout else '—'}｜殖利率 {_yield_txt_joined}（*預估為隨現價浮動）</li>
+</ul>"""
+    elif len(years)==2:
+        ins2=f"""<ul>
+<li>兩年EPS {fmt(M[years[0]]['eps'],2)} → {fmt(L('eps'),2)}元，YoY {fmt_yoy(ni_yoy).replace('▲ ','')}，CAGR {_eps_cagr_txt}</li>
+<li>稅後淨利 {fmt(M[years[0]]['net_income'])} → {fmt(L('net_income'))} 億，{years[-1]}年 YoY {fmt_yoy(ni_yoy).replace('▲ ','')}，淨利率 {fmt_pct(L('net_margin'))}</li>
+<li>ROE兩年 {fmt_pct(g('roe')[0])} → {fmt_pct(L('roe'))}，{'穩定優質' if L('roe') and L('roe')>10 else '待提升'}</li>
+<li>現金股利 {_div_cash_joined} 元{_stock_txt}，{years[-1]}年配息率約 {f'{payout:.0f}%' if payout else '—'}｜殖利率 {_yield_txt_joined}（*預估為隨現價浮動）</li>
+</ul>"""
+    else:
+        ins2=f"""<ul>
+<li>單年EPS {fmt(L('eps'),2)}元（僅1年樣本，YoY/CAGR 資料暫缺）{'｜創單年高' if True else ''}</li>
+<li>稅後淨利 {fmt(L('net_income'))} 億，淨利率 {fmt_pct(L('net_margin'))}（僅1年）</li>
+<li>ROE單年 {fmt_pct(L('roe'))}，{'穩定優質' if L('roe') and L('roe')>10 else '待提升'}（僅1年樣本）</li>
+<li>現金股利 {_div_cash_joined} 元{_stock_txt}，{years[-1]}年配息率約 {f'{payout:.0f}%' if payout else '—'}｜殖利率 {_yield_txt_joined}（*預估為隨現價浮動）</li>
 </ul>"""
     # KPI 財務
     k3=f"""<div class="kpi-row">
