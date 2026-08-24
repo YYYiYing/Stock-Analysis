@@ -725,10 +725,19 @@ def generate(sid):
                     detailed.append(s + "，月年增與季增同步")
                 else:
                     detailed.append(s)
-            # 再補一條整體季度毛利/淨利趨勢
+            # 再補一條整體季度毛利/淨利趨勢（金融股無毛利率時自動兼容改看淨利率）
             if q:
-                gm_trend = q[-1].get("gross_margin",0) - q[0].get("gross_margin",0) if q[-1].get("gross_margin") and q[0].get("gross_margin") else 0
-                detailed.append(f"毛利率 {q[0].get('gross_margin',0):.1f}% → {q[-1].get('gross_margin',0):.1f}% {'結構改善' if gm_trend>0 else '結構承壓'}")
+                gm0 = q[0].get("gross_margin")
+                gm1 = q[-1].get("gross_margin")
+                if gm0 is not None and gm1 is not None:
+                    gm_trend = gm1 - gm0
+                    detailed.append(f"毛利率 {gm0:.1f}% → {gm1:.1f}% {'結構改善' if gm_trend>0 else '結構承壓'}")
+                else:
+                    nm0 = q[0].get("net_margin")
+                    nm1 = q[-1].get("net_margin")
+                    if nm0 is not None and nm1 is not None:
+                        nm_trend = nm1 - nm0
+                        detailed.append(f"淨利率 {nm0:.1f}% → {nm1:.1f}% {'結構改善' if nm_trend>0 else '結構承壓'} (金融股無毛利率，以淨利率替代)")
             momentum_insight="<ul>"+"".join(f"<li>{s}</li>" for s in detailed[:5])+"</ul>"
         else:
             momentum_insight="<ul><li>季月数据加载中</li></ul>"
