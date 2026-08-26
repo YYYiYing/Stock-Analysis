@@ -19,6 +19,8 @@ from collections import defaultdict
 from pathlib import Path
 
 REPORTS = Path(__file__).parent.parent / "reports"
+RAW_DATA_DIR = REPORTS / "raw_data"
+RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
 TOKEN = os.getenv("FINMIND_TOKEN", "")
 
 FINMIND_BASE = "https://api.finmindtrade.com/api/v4/data"
@@ -792,8 +794,18 @@ def fetch_single(stock_id, company_name=None, delay_goodinfo=True):
     }
     return result
 
+def _resolve_raw_path(stock_id):
+    """支援新舊位置：優先 raw_data/，回落 reports/ 舊檔（相容期）"""
+    p_new = RAW_DATA_DIR / f"{stock_id}_raw_data.json"
+    p_old = REPORTS / f"{stock_id}_raw_data.json"
+    if p_new.exists():
+        return p_new
+    if p_old.exists():
+        return p_old
+    return p_new  # 預設新位置（寫入）
+
 def patch_existing(stock_id):
-    raw_path = REPORTS / f"{stock_id}_raw_data.json"
+    raw_path = _resolve_raw_path(stock_id)
     if not raw_path.exists():
         print(f"{stock_id} no raw_data, will fetch fresh")
         return fetch_and_save(stock_id)
@@ -897,7 +909,7 @@ def patch_existing(stock_id):
 
 def fetch_and_save(stock_id, company_name=None):
     data = fetch_single(stock_id, company_name)
-    out = REPORTS / f"{stock_id}_raw_data.json"
+    out = RAW_DATA_DIR / f"{stock_id}_raw_data.json"
     # If company_name resolves to different, still use stock_id prefix for gen_dashboard
     # Also need company field for display
     json.dump(data, open(out, "w", encoding="utf-8"), ensure_ascii=False, indent=1)

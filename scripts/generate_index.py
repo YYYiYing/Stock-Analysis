@@ -16,8 +16,14 @@ def get_stock_info(filename):
         return parts[0], parts[1]
     return None, None
 
+def _raw_path(stock_id):
+    p_new = Path(f"reports/raw_data/{stock_id}_raw_data.json")
+    if p_new.exists():
+        return p_new
+    return Path(f"reports/{stock_id}_raw_data.json")  # 回落舊位置（相容期）
+
 def load_metrics(stock_id):
-    raw = Path(f"reports/{stock_id}_raw_data.json")
+    raw = _raw_path(stock_id)
     if not raw.exists():
         return None, None
     try:
@@ -62,7 +68,7 @@ def decide_annual(stock_id, m, m_prev):
 
 def decide_momentum(stock_id):
     try:
-        raw_path = Path(f"reports/{stock_id}_raw_data.json")
+        raw_path = _raw_path(stock_id)
         if not raw_path.exists():
             return 2, "無季月", False
         j = json.load(open(raw_path, encoding='utf-8'))

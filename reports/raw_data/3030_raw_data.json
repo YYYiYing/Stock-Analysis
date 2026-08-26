@@ -631,7 +631,8 @@
   ],
   "supplement_source": {
    "expense_breakdown": "Goodinfo.tw IS_YEAR (single request, sell/admin/rd only)",
-   "status": "OK"
+   "status": "OK",
+   "patched_at": "2026-08-25T23:39:35+08:00"
   },
   "mops_url": "https://mops.twse.com.tw/mops/web/t05st01?step=1&co_id=3030&TYPEK=sii",
   "mops_url_otc": "https://mops.twse.com.tw/mops/web/t05st01?step=1&co_id=3030&TYPEK=otc",

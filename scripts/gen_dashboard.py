@@ -4,7 +4,16 @@
 import json, os
 
 REPORTS = r"C:\Users\secre\OneDrive\OpenCode\YYIH\reports"
+RAW_DATA_DIR = os.path.join(REPORTS, "raw_data")
 DIVS_PATH = os.path.join(os.path.dirname(__file__), "div_per_share.json")
+
+def _raw_data_path(sid):
+    """優先 raw_data/，回落 reports/ 舊位置（相容期）"""
+    p_new = os.path.join(RAW_DATA_DIR, f"{sid}_raw_data.json")
+    if os.path.exists(p_new):
+        return p_new
+    p_old = os.path.join(REPORTS, f"{sid}_raw_data.json")
+    return p_new if not os.path.exists(p_old) else p_old
 try:
     DIVS = json.load(open(DIVS_PATH, encoding="utf-8"))
 except:
@@ -159,7 +168,7 @@ def wrap(cid, title, config):
     return f'<div class="chart-card"><div class="chart-title">{title}</div><div class="chart-container"><canvas id="{cid}"></canvas></div></div>' + chart_script(cid, config)
 
 def generate(sid):
-    j=json.load(open(os.path.join(REPORTS, f"{sid}_raw_data.json"), encoding="utf-8"))
+    j=json.load(open(_raw_data_path(sid), encoding="utf-8"))
     name=j.get("company", sid)
     # 兼容新舊 years 排序：舊檔為降冪['2025','2024',...]，新檔為升冪['2020',...,'2026']，一律取最近三年
     years=sorted(j["years"])[-3:]
