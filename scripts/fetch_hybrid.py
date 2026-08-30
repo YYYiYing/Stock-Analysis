@@ -3,20 +3,43 @@
 """
 fetch_hybrid.py — FinMind 主力 + Goodinfo 費用結構單次補足
 
-設計原則 (2026-08-22):
+設計原則 (2026-08-28 修訂):
 - FinMind 優先：損益/資產負債/現金流/股利/月營收 全部走 FinMind (600/hr, 官方授權)
 - Goodinfo 僅 1 次：IS_YEAR 損益表，僅解析 推銷/管理/研發 三列，作費用堆疊圖
-- 若 Goodinfo 被限流，僅費用細拆為 null，主體報告仍完成
+- 若 Goodinfo 被限流，僅費用細拆為 null，主體報告仍完成（FinMind-only 為未來標準）
+- 節流（2026-08-28）：每次 Goodinfo 請求前隨機延遲 30–60s + 5–15s jitter（實測 35–75s）；尖峰 09:00–13:30 先做 1 次探針，若探針即限流（tables<7）當日暫停 Goodinfo，降級為 FinMind-only
 
 Usage:
   python fetch_hybrid.py 6782            # 單檔健診 (FinMind+Goodinfo expense)
   python fetch_hybrid.py --patch 2484    # 修補既有 raw_data 的費用結構
   python fetch_hybrid.py --patch-all     # 批次補齊所有缺漏
 """
-import os, sys, time, json, requests
+import os, sys, time, json, requests, random
+from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from collections import defaultdict
 from pathlib import Path
+
+# --- 節流與尖峰控管（2026-08-28）---
+GOODINFO_MIN_DELAY = 30
+GOODINFO_MAX_DELAY = 60
+GOODINFO_JITTER_MIN = 5
+GOODINFO_JITTER_MAX = 15
+PEAK_START_HOUR = 9
+PEAK_END_HOUR = 13
+PEAK_END_MINUTE = 30
+TPE = timezone(timedelta(hours=8))
+
+def _is_peak_hours(now=None):
+    """台股開盤 09:00–13:30 尖峰，防火牆較緊，建議探針後暫停"""
+    t = now or datetime.now(TPE)
+    hm = t.hour * 60 + t.minute
+    return (PEAK_START_HOUR * 60) <= hm <= (PEAK_END_HOUR * 60 + PEAK_END_MINUTE)
+
+def _random_goodinfo_delay():
+    base = random.uniform(GOODINFO_MIN_DELAY, GOODINFO_MAX_DELAY)
+    jitter = random.uniform(GOODINFO_JITTER_MIN, GOODINFO_JITTER_MAX)
+    return base + jitter
 
 REPORTS = Path(__file__).parent.parent / "reports"
 RAW_DATA_DIR = REPORTS / "raw_data"
@@ -321,11 +344,20 @@ def fetch_finmind_annual(stock_id):
         }
     return annual, is_by_year, bs_by_year, cf_by_year, div_by_year
 
-def fetch_goodinfo_expense_only(stock_id):
+def fetch_goodinfo_expense_only(stock_id, _skip_delay=False):
     """
     僅抓 IS_YEAR 三列：推銷/管理/研發。成功回傳 {year: {sell, admin, rd}}，失敗回傳 {} + reason
-    每次健診最多 1 次 HTTP，失敗不重試
+    每次健診最多 1 次 HTTP，失敗不重試；節流：每次請求前隨機 30–60s + 5–15s jitter，尖峰探針失敗即降級為 FinMind-only
     """
+    # 節流：隨機延遲 30–60s + jitter（2026-08-28），_skip_delay 供探針內部或測試繞過
+    if not _skip_delay and not os.getenv("GOODINFO_NO_DELAY"):
+        is_peak = _is_peak_hours()
+        delay = _random_goodinfo_delay()
+        if is_peak:
+            print(f"  [Goodinfo] 尖峰時段 {datetime.now(TPE).strftime('%H:%M')} 探針模式，仍將延遲 {delay:.1f}s 後試探 1 次，若限流即降級 FinMind-only")
+        else:
+            print(f"  [Goodinfo] 節流延遲 {delay:.1f}s (30-60s + jitter) 後請求 {stock_id}")
+        time.sleep(delay)
     tz_offset = -480
     now_ms = time.time() * 1000
     days_adjusted = now_ms / 86400000 - tz_offset / 1440
@@ -931,12 +963,16 @@ if __name__ == "__main__":
     if args.regen:
         for sid in args.regen:
             fetch_and_save(sid)
+            # regen 含 Goodinfo 時已在 fetch_goodinfo_expense_only 內隨機延遲，此處 FinMind 間隔 1s 足夠
             time.sleep(1)
     elif args.patch_all:
         targets = ["2484","3605","4721","8069"]
         for sid in targets:
             patch_existing(sid)
-            time.sleep(8)  # Goodinfo rate limit: 1 per 8s
+            # 2026-08-28 節流：30–60s + jitter，避免固定頻率
+            d = _random_goodinfo_delay()
+            print(f"  [節流] patch 間隔 {d:.1f}s 後下一檔")
+            time.sleep(d)
     elif args.patch:
         patch_existing(args.patch)
     elif args.stock_id:

@@ -1,0 +1,656 @@
+{
+ "stock_id": "3037",
+ "company": "欣興",
+ "years": [
+  "2020",
+  "2021",
+  "2022",
+  "2023",
+  "2024",
+  "2025"
+ ],
+ "income_statement": {
+  "營業收入": {
+   "2020": 878.92821,
+   "2021": 1045.62747,
+   "2022": 1404.89172,
+   "2023": 1040.36151,
+   "2024": 1153.73282,
+   "2025": 1312.40882
+  },
+  "營業成本": {
+   "2020": 750.64455,
+   "2021": 808.9993,
+   "2022": 900.5606600000001,
+   "2023": 837.34548,
+   "2024": 990.5812099999999,
+   "2025": 1129.4862400000002
+  },
+  "營業毛利": {
+   "2020": 128.28366,
+   "2021": 236.62817,
+   "2022": 504.33106,
+   "2023": 203.01603,
+   "2024": 163.15161,
+   "2025": 182.92258
+  },
+  "推銷費用": {
+   "2020": null,
+   "2021": null,
+   "2022": null,
+   "2023": null,
+   "2024": null,
+   "2025": null
+  },
+  "管理費用": {
+   "2020": null,
+   "2021": null,
+   "2022": null,
+   "2023": null,
+   "2024": null,
+   "2025": null
+  },
+  "研究發展費用": {
+   "2020": null,
+   "2021": null,
+   "2022": null,
+   "2023": null,
+   "2024": null,
+   "2025": null
+  },
+  "營業費用": {
+   "2020": 88.59473,
+   "2021": 106.29041,
+   "2022": 123.65668,
+   "2023": 114.77369,
+   "2024": 112.6465,
+   "2025": 117.81804
+  },
+  "營業利益": {
+   "2020": 40.17113,
+   "2021": 131.70291,
+   "2022": 381.71926,
+   "2023": 89.19919,
+   "2024": 51.16677,
+   "2025": 66.74372
+  },
+  "稅前淨利": {
+   "2020": 62.34105,
+   "2021": 166.29052,
+   "2022": 398.74809,
+   "2023": 155.74932,
+   "2024": 73.2071,
+   "2025": 88.27291
+  },
+  "所得稅費用": {
+   "2020": 9.16577,
+   "2021": 31.04494,
+   "2022": 86.49092,
+   "2023": 33.4983,
+   "2024": 17.64696,
+   "2025": 12.76801
+  },
+  "稅後淨利": {
+   "2020": 54.61671,
+   "2021": 132.22256,
+   "2022": 296.18505,
+   "2023": 119.80052,
+   "2024": 50.82063,
+   "2025": 66.73144
+  },
+  "每股稅後盈餘(元)": {
+   "2020": 3.74,
+   "2021": 8.99,
+   "2022": 20.080000000000002,
+   "2023": 7.88,
+   "2024": 3.35,
+   "2025": 4.38
+  }
+ },
+ "balance_sheet": {
+  "現金及約當現金": {
+   "2020": 241.94463,
+   "2021": 394.01609,
+   "2022": 614.59296,
+   "2023": 528.59417,
+   "2024": 437.53285,
+   "2025": 548.71781
+  },
+  "存貨": {
+   "2020": 89.26459,
+   "2021": 121.51603,
+   "2022": 128.34619,
+   "2023": 109.27213,
+   "2024": 148.62745,
+   "2025": 178.01827
+  },
+  "流動資產合計": {
+   "2020": 537.31376,
+   "2021": 798.77132,
+   "2022": 1075.87687,
+   "2023": 865.79363,
+   "2024": 868.6909,
+   "2025": 1052.9762
+  },
+  "流動負債合計": {
+   "2020": 423.688,
+   "2021": 490.60327,
+   "2022": 548.92563,
+   "2023": 442.46929,
+   "2024": 583.81858,
+   "2025": 754.54571
+  },
+  "負債總額": {
+   "2020": 716.09666,
+   "2021": 1045.39077,
+   "2022": 1260.05073,
+   "2023": 1197.21037,
+   "2024": 1312.59873,
+   "2025": 1487.84535
+  },
+  "股東權益總額": {
+   "2020": 531.00558,
+   "2021": 655.16176,
+   "2022": 926.58356,
+   "2023": 962.84493,
+   "2024": 995.87073,
+   "2025": 1070.07077
+  },
+  "資產總額": {
+   "2020": 1247.10224,
+   "2021": 1700.55253,
+   "2022": 2186.63429,
+   "2023": 2160.0553,
+   "2024": 2308.46946,
+   "2025": 2557.91612
+  }
+ },
+ "cash_flow": {
+  "營業活動之淨現金流入（出）": {
+   "2020": 181.64028,
+   "2021": 429.56628,
+   "2022": 610.82021,
+   "2023": 309.00026,
+   "2024": 102.93587,
+   "2025": 149.67094
+  },
+  "投資活動之淨現金流入（出）": {
+   "2020": -140.87356,
+   "2021": -244.56082,
+   "2022": -333.95918,
+   "2023": -210.99171,
+   "2024": -292.29826,
+   "2025": -230.17614
+  },
+  "融資活動之淨現金流入（出）": {
+   "2020": -11.44928,
+   "2021": -39.84358,
+   "2022": -48.31475,
+   "2023": -180.5968,
+   "2024": 83.36108,
+   "2025": 190.72908
+  },
+  "固定資產（增加）減少": {
+   "2020": -145.5006,
+   "2021": -231.67189,
+   "2022": -320.72759,
+   "2023": -229.38009,
+   "2024": -261.27518,
+   "2025": -256.17186
+  },
+  "發放現金股利": {
+   "2020": null,
+   "2021": null,
+   "2022": null,
+   "2023": null,
+   "2024": null,
+   "2025": null
+  }
+ },
+ "metrics": {
+  "2020": {
+   "revenue": 878.92821,
+   "gross_profit": 128.28366,
+   "sell_exp": null,
+   "admin_exp": null,
+   "rd_exp": null,
+   "rd_availability": "temporarily_unavailable",
+   "op_income": 40.17113,
+   "net_income": 54.61671,
+   "eps": 3.74,
+   "eps_is_estimated": false,
+   "cash": 241.94463,
+   "inventory": 89.26459,
+   "current_assets": 537.31376,
+   "current_liabilities": 423.688,
+   "total_assets": 1247.10224,
+   "total_liabilities": 716.09666,
+   "equity": 531.00558,
+   "op_cf": 181.64028,
+   "inv_cf": -140.87356,
+   "fin_cf": -11.44928,
+   "capex": -145.5006,
+   "dividend": 1.39293356,
+   "dividend_cash": 1.39293356,
+   "dividend_stock": 0.0,
+   "dividend_yield": 0.9985186810035842,
+   "dividend_yield_price": 139.5,
+   "dividend_yield_price_date": "2021-08-26",
+   "dividend_yield_is_estimated": false,
+   "dividend_ex_cash_date": "2021-08-27",
+   "dividend_ex_stock_date": null,
+   "gross_margin": 14.595465083547607,
+   "sell_ratio": null,
+   "admin_ratio": null,
+   "rd_ratio": null,
+   "total_opex_ratio": 10.079859650880929,
+   "op_margin": 4.5704677063442976,
+   "net_margin": 6.214012632499302,
+   "current_ratio": 126.81826249504353,
+   "debt_ratio": 57.42084626517872,
+   "roe": 10.285524683186944,
+   "roa": 4.37948936728716,
+   "fcf": 36.13968
+  },
+  "2021": {
+   "revenue": 1045.62747,
+   "gross_profit": 236.62817,
+   "sell_exp": null,
+   "admin_exp": null,
+   "rd_exp": null,
+   "rd_availability": "temporarily_unavailable",
+   "op_income": 131.70291,
+   "net_income": 132.22256,
+   "eps": 8.99,
+   "eps_is_estimated": false,
+   "cash": 394.01609,
+   "inventory": 121.51603,
+   "current_assets": 798.77132,
+   "current_liabilities": 490.60327,
+   "total_assets": 1700.55253,
+   "total_liabilities": 1045.39077,
+   "equity": 655.16176,
+   "op_cf": 429.56628,
+   "inv_cf": -244.56082,
+   "fin_cf": -39.84358,
+   "capex": -231.67189,
+   "dividend": 3.4,
+   "dividend_cash": 3.4,
+   "dividend_stock": 0.0,
+   "dividend_yield": 2.214983713355049,
+   "dividend_yield_price": 153.5,
+   "dividend_yield_price_date": "2022-07-14",
+   "dividend_yield_is_estimated": false,
+   "dividend_ex_cash_date": "2022-07-15",
+   "dividend_ex_stock_date": null,
+   "gross_margin": 22.63025568752512,
+   "sell_ratio": null,
+   "admin_ratio": null,
+   "rd_ratio": null,
+   "total_opex_ratio": 10.165227392122741,
+   "op_margin": 12.59558626553681,
+   "net_margin": 12.645283697452975,
+   "current_ratio": 162.8141043576819,
+   "debt_ratio": 61.47359470277581,
+   "roe": 20.181666280400737,
+   "roa": 7.775270546920416,
+   "fcf": 197.89439000000002
+  },
+  "2022": {
+   "revenue": 1404.89172,
+   "gross_profit": 504.33106,
+   "sell_exp": null,
+   "admin_exp": null,
+   "rd_exp": null,
+   "rd_availability": "temporarily_unavailable",
+   "op_income": 381.71926,
+   "net_income": 296.18505,
+   "eps": 20.080000000000002,
+   "eps_is_estimated": false,
+   "cash": 614.59296,
+   "inventory": 128.34619,
+   "current_assets": 1075.87687,
+   "current_liabilities": 548.92563,
+   "total_assets": 2186.63429,
+   "total_liabilities": 1260.05073,
+   "equity": 926.58356,
+   "op_cf": 610.82021,
+   "inv_cf": -333.95918,
+   "fin_cf": -48.31475,
+   "capex": -320.72759,
+   "dividend": 7.99298687,
+   "dividend_cash": 7.99298687,
+   "dividend_stock": 0.0,
+   "dividend_yield": 4.674261327485381,
+   "dividend_yield_price": 171.0,
+   "dividend_yield_price_date": "2023-07-12",
+   "dividend_yield_is_estimated": false,
+   "dividend_ex_cash_date": "2023-07-13",
+   "dividend_ex_stock_date": null,
+   "gross_margin": 35.898215700210685,
+   "sell_ratio": null,
+   "admin_ratio": null,
+   "rd_ratio": null,
+   "total_opex_ratio": 8.80186552740164,
+   "op_margin": 27.17072458794191,
+   "net_margin": 21.08241124803554,
+   "current_ratio": 195.99683658422,
+   "debt_ratio": 57.62512440980699,
+   "roe": 31.9652822245195,
+   "roa": 13.545248574694217,
+   "fcf": 290.09261999999995
+  },
+  "2023": {
+   "revenue": 1040.36151,
+   "gross_profit": 203.01603,
+   "sell_exp": null,
+   "admin_exp": null,
+   "rd_exp": null,
+   "rd_availability": "temporarily_unavailable",
+   "op_income": 89.19919,
+   "net_income": 119.80052,
+   "eps": 7.88,
+   "eps_is_estimated": false,
+   "cash": 528.59417,
+   "inventory": 109.27213,
+   "current_assets": 865.79363,
+   "current_liabilities": 442.46929,
+   "total_assets": 2160.0553,
+   "total_liabilities": 1197.21037,
+   "equity": 962.84493,
+   "op_cf": 309.00026,
+   "inv_cf": -210.99171,
+   "fin_cf": -180.5968,
+   "capex": -229.38009,
+   "dividend": 3.00000196,
+   "dividend_cash": 3.00000196,
+   "dividend_stock": 0.0,
+   "dividend_yield": 1.7094028262108263,
+   "dividend_yield_price": 175.5,
+   "dividend_yield_price_date": "2024-07-10",
+   "dividend_yield_is_estimated": false,
+   "dividend_ex_cash_date": "2024-07-11",
+   "dividend_ex_stock_date": null,
+   "gross_margin": 19.513988940248282,
+   "sell_ratio": null,
+   "admin_ratio": null,
+   "rd_ratio": null,
+   "total_opex_ratio": 11.03209691023652,
+   "op_margin": 8.573864867415175,
+   "net_margin": 11.515277992166398,
+   "current_ratio": 195.6731573393489,
+   "debt_ratio": 55.424987036211526,
+   "roe": 12.4423483229018,
+   "roa": 5.546178377933194,
+   "fcf": 79.62017000000003
+  },
+  "2024": {
+   "revenue": 1153.73282,
+   "gross_profit": 163.15161,
+   "sell_exp": null,
+   "admin_exp": null,
+   "rd_exp": null,
+   "rd_availability": "temporarily_unavailable",
+   "op_income": 51.16677,
+   "net_income": 50.82063,
+   "eps": 3.35,
+   "eps_is_estimated": false,
+   "cash": 437.53285,
+   "inventory": 148.62745,
+   "current_assets": 868.6909,
+   "current_liabilities": 583.81858,
+   "total_assets": 2308.46946,
+   "total_liabilities": 1312.59873,
+   "equity": 995.87073,
+   "op_cf": 102.93587,
+   "inv_cf": -292.29826,
+   "fin_cf": 83.36108,
+   "capex": -261.27518,
+   "dividend": 1.50004559,
+   "dividend_cash": 1.50004559,
+   "dividend_stock": 0.0,
+   "dividend_yield": 1.2245270122448981,
+   "dividend_yield_price": 122.5,
+   "dividend_yield_price_date": "2025-07-09",
+   "dividend_yield_is_estimated": false,
+   "dividend_ex_cash_date": "2025-07-10",
+   "dividend_ex_stock_date": "2025-11-14",
+   "gross_margin": 14.141195185901015,
+   "sell_ratio": null,
+   "admin_ratio": null,
+   "rd_ratio": null,
+   "total_opex_ratio": 9.76365567896387,
+   "op_margin": 4.434889006624601,
+   "net_margin": 4.404887259773021,
+   "current_ratio": 148.79466494540137,
+   "debt_ratio": 56.86012974154746,
+   "roe": 5.103135223183034,
+   "roa": 2.2014859143945533,
+   "fcf": -158.33930999999998
+  },
+  "2025": {
+   "revenue": 1312.40882,
+   "gross_profit": 182.92258,
+   "sell_exp": null,
+   "admin_exp": null,
+   "rd_exp": null,
+   "rd_availability": "temporarily_unavailable",
+   "op_income": 66.74372,
+   "net_income": 66.73144,
+   "eps": 4.38,
+   "eps_is_estimated": false,
+   "cash": 548.71781,
+   "inventory": 178.01827,
+   "current_assets": 1052.9762,
+   "current_liabilities": 754.54571,
+   "total_assets": 2557.91612,
+   "total_liabilities": 1487.84535,
+   "equity": 1070.07077,
+   "op_cf": 149.67094,
+   "inv_cf": -230.17614,
+   "fin_cf": 190.72908,
+   "capex": -256.17186,
+   "dividend": 1.98015311,
+   "dividend_cash": 1.98015311,
+   "dividend_stock": 0.0,
+   "dividend_yield": 0.2043501661506708,
+   "dividend_yield_price": 969.0,
+   "dividend_yield_price_date": "2026-07-03",
+   "dividend_yield_is_estimated": false,
+   "dividend_ex_cash_date": "2026-07-06",
+   "dividend_ex_stock_date": null,
+   "gross_margin": 13.937926750598947,
+   "sell_ratio": null,
+   "admin_ratio": null,
+   "rd_ratio": null,
+   "total_opex_ratio": 8.977236224303947,
+   "op_margin": 5.085589107820838,
+   "net_margin": 5.084653423770804,
+   "current_ratio": 139.5510154050177,
+   "debt_ratio": 58.16630726733917,
+   "roe": 6.2361707160732935,
+   "roa": 2.6088204956462766,
+   "fcf": -106.50091999999998
+  }
+ },
+ "quarterly": [
+  {
+   "date": "2024-09-30",
+   "label": "2024Q3",
+   "revenue": 31712154000.0,
+   "gross_profit": 4941696000.0,
+   "net_income": 997140000.0,
+   "eps": 0.66,
+   "gross_margin": 15.582971752722946,
+   "net_margin": 3.144346486208411,
+   "qoq": null
+  },
+  {
+   "date": "2024-12-31",
+   "label": "2024Q4",
+   "revenue": 29380912000.0,
+   "gross_profit": 3398125000.0,
+   "net_income": 56064000.0,
+   "eps": 0.04,
+   "gross_margin": 11.565757386972876,
+   "net_margin": 0.1908177663103174,
+   "qoq": -7.351257186755589
+  },
+  {
+   "date": "2025-03-31",
+   "label": "2025Q1",
+   "revenue": 30089532000.0,
+   "gross_profit": 4026094000.0,
+   "net_income": 914544000.0,
+   "eps": 0.6,
+   "gross_margin": 13.38038092450225,
+   "net_margin": 3.0394091872216555,
+   "qoq": 2.411837998766009
+  },
+  {
+   "date": "2025-06-30",
+   "label": "2025Q2",
+   "revenue": 32466045000.0,
+   "gross_profit": 4245516000.0,
+   "net_income": 29607000.0,
+   "eps": 0.02,
+   "gross_margin": 13.07678837998284,
+   "net_margin": 0.09119373794991044,
+   "qoq": 7.898138794581455
+  },
+  {
+   "date": "2025-09-30",
+   "label": "2025Q3",
+   "revenue": 33994419000.0,
+   "gross_profit": 4548515000.0,
+   "net_income": 2194489000.0,
+   "eps": 1.44,
+   "gross_margin": 13.380181611575711,
+   "net_margin": 6.4554390530986865,
+   "qoq": 4.707607594334329
+  },
+  {
+   "date": "2025-12-31",
+   "label": "2025Q4",
+   "revenue": 34690886000.0,
+   "gross_profit": 5472133000.0,
+   "net_income": 3534504000.0,
+   "eps": 2.32,
+   "gross_margin": 15.773978790855903,
+   "net_margin": 10.18856653012552,
+   "qoq": 2.0487686522896675
+  },
+  {
+   "date": "2026-03-31",
+   "label": "2026Q1",
+   "revenue": 37446455000.0,
+   "gross_profit": 6726042000.0,
+   "net_income": 5042976000.0,
+   "eps": 3.28,
+   "gross_margin": 17.96175899694644,
+   "net_margin": 13.467165316449847,
+   "qoq": 7.943207331170488
+  },
+  {
+   "date": "2026-06-30",
+   "label": "2026Q2",
+   "revenue": 42889818000.0,
+   "gross_profit": 10638138000.0,
+   "net_income": 13114938000.0,
+   "eps": 8.45,
+   "gross_margin": 24.8034113830933,
+   "net_margin": 30.57820856222799,
+   "qoq": 14.536390694392832
+  }
+ ],
+ "monthly": [
+  {
+   "date": "2025-09",
+   "revenue": 113.56606
+  },
+  {
+   "date": "2025-10",
+   "revenue": 113.26339
+  },
+  {
+   "date": "2025-11",
+   "revenue": 113.27098
+  },
+  {
+   "date": "2025-12",
+   "revenue": 115.41416
+  },
+  {
+   "date": "2026-01",
+   "revenue": 118.22372
+  },
+  {
+   "date": "2026-02",
+   "revenue": 127.66959
+  },
+  {
+   "date": "2026-03",
+   "revenue": 116.00477
+  },
+  {
+   "date": "2026-04",
+   "revenue": 130.79019
+  },
+  {
+   "date": "2026-05",
+   "revenue": 139.32815
+  },
+  {
+   "date": "2026-06",
+   "revenue": 140.59973
+  },
+  {
+   "date": "2026-07",
+   "revenue": 148.9703
+  },
+  {
+   "date": "2026-08",
+   "revenue": 162.53637
+  }
+ ],
+ "metadata": {
+  "fetched_at": "2026-08-28T08:47:13+08:00",
+  "source": "FinMind (primary) + Goodinfo.tw (expense breakdown only)",
+  "source_urls": {
+   "income_statement": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=IS_YEAR&STOCK_ID=3037",
+   "balance_sheet": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=BS_YEAR&STOCK_ID=3037",
+   "cash_flow": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=CF_YEAR&STOCK_ID=3037"
+  },
+  "finmind_datasets": [
+   "TaiwanStockFinancialStatements",
+   "TaiwanStockBalanceSheet",
+   "TaiwanStockCashFlowsStatement",
+   "TaiwanStockDividend",
+   "TaiwanStockMonthRevenue",
+   "TaiwanStockPrice"
+  ],
+  "supplement_source": {
+   "expense_breakdown": "Goodinfo.tw IS_YEAR (single request, sell/admin/rd only)",
+   "status": "Goodinfo blocked: tables=0"
+  },
+  "mops_url": "https://mops.twse.com.tw/mops/web/t05st01?step=1&co_id=3037&TYPEK=sii",
+  "mops_url_otc": "https://mops.twse.com.tw/mops/web/t05st01?step=1&co_id=3037&TYPEK=otc",
+  "years_covered": [
+   "2023",
+   "2024",
+   "2025"
+  ],
+  "currency": "TWD 億元"
+ },
+ "verification": {
+  "sanity": [],
+  "sanity_pass": true,
+  "news_crosscheck": {
+   "status": "skipped",
+   "msg": "未啟用新聞交叉（日常離線模式），僅以 FinMind/MOPS 為準",
+   "warnings": []
+  },
+  "cross_source_warnings": [],
+  "has_verify_warn": false
+ }
+}
