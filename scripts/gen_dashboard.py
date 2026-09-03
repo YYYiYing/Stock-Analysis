@@ -2,18 +2,19 @@
 # -*- coding: utf-8 -*-
 """YYIH 儀表板生成器 - 修正版：以 8069 為範本，重建圖表與細緻內容 + 行動裝置響應式"""
 import json, os
+from pathlib import Path
 
-REPORTS = r"C:\Users\secre\OneDrive\OpenCode\YYIH\reports"
-RAW_DATA_DIR = os.path.join(REPORTS, "raw_data")
-DIVS_PATH = os.path.join(os.path.dirname(__file__), "div_per_share.json")
+REPORTS = Path(__file__).parent.parent / "reports"
+RAW_DATA_DIR = REPORTS / "raw_data"
+DIVS_PATH = Path(__file__).parent / "div_per_share.json"
 
 def _raw_data_path(sid):
     """優先 raw_data/，回落 reports/ 舊位置（相容期）"""
-    p_new = os.path.join(RAW_DATA_DIR, f"{sid}_raw_data.json")
-    if os.path.exists(p_new):
-        return p_new
-    p_old = os.path.join(REPORTS, f"{sid}_raw_data.json")
-    return p_new if not os.path.exists(p_old) else p_old
+    p_new = RAW_DATA_DIR / f"{sid}_raw_data.json"
+    if p_new.exists():
+        return str(p_new)
+    p_old = REPORTS / f"{sid}_raw_data.json"
+    return str(p_new) if not p_old.exists() else str(p_old)
 try:
     DIVS = json.load(open(DIVS_PATH, encoding="utf-8"))
 except:
@@ -837,8 +838,16 @@ function switchTab(name) {{
     safe_name = re.sub(r'[\\/*?:"<>|*]', "", name).strip()
     # 去除多餘空白與尾端底線
     safe_name = safe_name.strip().strip("_")
-    out=os.path.join(REPORTS, f"{sid}_{safe_name}_analysis.html")
-    open(out,"w",encoding="utf-8").write(html)
+    out = REPORTS / f"{sid}_{safe_name}_analysis.html"
+    # 清理舊 fallback 檔名：{sid}_{sid}_analysis.html（公司名解析失敗殘留）
+    legacy = REPORTS / f"{sid}_{sid}_analysis.html"
+    if legacy.exists() and legacy != out:
+        try: legacy.unlink()
+        except: pass
+    # 原子寫入
+    tmp = out.with_suffix(out.suffix + ".tmp")
+    tmp.write_text(html, encoding="utf-8")
+    tmp.replace(out)
     print(f"OK {sid}_{safe_name} ({len(html):,} bytes)")
 
 if __name__=="__main__":

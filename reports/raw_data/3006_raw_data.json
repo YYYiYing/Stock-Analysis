@@ -565,10 +565,6 @@
  ],
  "monthly": [
   {
-   "date": "2025-09",
-   "revenue": 11.20861
-  },
-  {
    "date": "2025-10",
    "revenue": 13.08368
   },
@@ -611,10 +607,14 @@
   {
    "date": "2026-08",
    "revenue": 67.84662
+  },
+  {
+   "date": "2026-09",
+   "revenue": 79.04796
   }
  ],
  "metadata": {
-  "fetched_at": "2026-08-27T20:37:38+08:00",
+  "fetched_at": "2026-09-03T12:53:37+08:00",
   "source": "FinMind (primary) + Goodinfo.tw (expense breakdown only)",
   "source_urls": {
    "income_statement": "https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=IS_YEAR&STOCK_ID=3006",

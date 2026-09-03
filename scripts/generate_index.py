@@ -16,18 +16,20 @@ def get_stock_info(filename):
         return parts[0], parts[1]
     return None, None
 
+REPORTS_DIR = Path(__file__).parent.parent / "reports"
 def _raw_path(stock_id):
-    p_new = Path(f"reports/raw_data/{stock_id}_raw_data.json")
+    p_new = REPORTS_DIR / "raw_data" / f"{stock_id}_raw_data.json"
     if p_new.exists():
         return p_new
-    return Path(f"reports/{stock_id}_raw_data.json")  # 回落舊位置（相容期）
+    return REPORTS_DIR / f"{stock_id}_raw_data.json"  # 回落舊位置（相容期）
 
 def load_metrics(stock_id):
     raw = _raw_path(stock_id)
     if not raw.exists():
         return None, None
     try:
-        j = json.load(open(raw, encoding='utf-8'))
+        with open(raw, encoding='utf-8') as f:
+            j = json.load(f)
         years = sorted(j.get("metrics", {}).keys())
         if not years:
             return None, None
@@ -66,12 +68,14 @@ def decide_annual(stock_id, m, m_prev):
         return 2, "中性"
     return 2, "中性"
 
-def decide_momentum(stock_id):
+def decide_momentum(stock_id, j=None):
     try:
-        raw_path = _raw_path(stock_id)
-        if not raw_path.exists():
-            return 2, "無季月", False
-        j = json.load(open(raw_path, encoding='utf-8'))
+        if j is None:
+            raw_path = _raw_path(stock_id)
+            if not raw_path.exists():
+                return 2, "無季月", False
+            with open(raw_path, encoding='utf-8') as f:
+                j = json.load(f)
         q = j.get("quarterly", [])
         mm = j.get("monthly", [])
         has_q = isinstance(q, list) and len(q) >= 2
@@ -377,13 +381,35 @@ def generate_index_html(reports):
 </body>
 </html>"""
 
+def _pick_best_file(files):
+    """同 stock_id 去重：優先公司名 != stock_id，其次最新 mtime"""
+    best = {}
+    for f in files:
+        sid, comp = get_stock_info(f.name)
+        if not sid: continue
+        cur = best.get(sid)
+        if cur is None:
+            best[sid] = f
+        else:
+            _, cur_comp = get_stock_info(cur.name)
+            # 優先正確公司名
+            cur_is_fallback = (cur_comp == sid)
+            new_is_fallback = (comp == sid)
+            if cur_is_fallback and not new_is_fallback:
+                best[sid] = f
+            elif cur_is_fallback == new_is_fallback:
+                # 同為 fallback 或同為正確，取較新
+                if f.stat().st_mtime > cur.stat().st_mtime:
+                    best[sid] = f
+    return best.values()
+
 def main():
-    reports_dir = Path('reports')
+    reports_dir = REPORTS_DIR
     if not reports_dir.exists():
         print("reports/ 資料夾不存在")
         return
     reports = []
-    for file in reports_dir.glob('*_analysis.html'):
+    for file in _pick_best_file(list(reports_dir.glob('*_analysis.html'))):
         stock_id, company_name = get_stock_info(file.name)
         if stock_id and company_name:
             ld = load_metrics(stock_id)
@@ -402,16 +428,17 @@ def main():
             else:
                 latest, prev, m, m_prev, j = ld
                 ann_emoji, ann_cls, mom_emoji, mom_cls, light_title = decide_light(stock_id, latest, prev, m, m_prev)
-                # 取得分數與原因以產生一句話直覺摘要
+                # 取得分數與原因以產生一句話直覺摘要（複用已載 j 避免重開）
                 ann_score, ann_reason = decide_annual(stock_id, m, m_prev)
-                mom_score, mom_reason, _ = decide_momentum(stock_id)
+                mom_score, mom_reason, _ = decide_momentum(stock_id, j=j)
                 summary = build_summary(stock_id, latest, prev, m, m_prev, ann_score, ann_reason, mom_score, mom_reason)
             reports.append((stock_id, company_name, file.name, ann_emoji, ann_cls, mom_emoji, mom_cls, light_title, summary))
     reports.sort(key=lambda x: x[0])
     html_content = generate_index_html(reports)
     output_file = reports_dir / 'index.html'
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(html_content)
+    tmp = output_file.with_suffix(output_file.suffix + ".tmp")
+    tmp.write_text(html_content, encoding="utf-8")
+    tmp.replace(output_file)
     print(f"已生成 index.html，包含 {len(reports)} 個分析報告（含燈號/摘要）")
 
 if __name__ == '__main__':

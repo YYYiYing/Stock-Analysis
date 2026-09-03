@@ -10,9 +10,10 @@ fetch_hybrid.py — FinMind 主力 + Goodinfo 費用結構單次補足
 - 節流（2026-08-28）：每次 Goodinfo 請求前隨機延遲 30–60s + 5–15s jitter（實測 35–75s）；尖峰 09:00–13:30 先做 1 次探針，若探針即限流（tables<7）當日暫停 Goodinfo，降級為 FinMind-only
 
 Usage:
-  python fetch_hybrid.py 6782            # 單檔健診 (FinMind+Goodinfo expense)
-  python fetch_hybrid.py --patch 2484    # 修補既有 raw_data 的費用結構
-  python fetch_hybrid.py --patch-all     # 批次補齊所有缺漏
+  python fetch_hybrid.py 6782            # 單檔健診 (FINMIND-only，預設不爬 Goodinfo)
+  python fetch_hybrid.py 6782 --with-goodinfo  # 單檔健診含費用細拆（推銷/管理/研發）
+  python fetch_hybrid.py --patch 2484 --with-goodinfo  # 修補既有 raw_data 的費用結構
+  python fetch_hybrid.py --patch-all --with-goodinfo   # 批次補齊所有缺漏
 """
 import os, sys, time, json, requests, random
 from datetime import datetime, timezone, timedelta
@@ -45,8 +46,19 @@ REPORTS = Path(__file__).parent.parent / "reports"
 RAW_DATA_DIR = REPORTS / "raw_data"
 RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
 TOKEN = os.getenv("FINMIND_TOKEN", "")
+# fallback: 從 opencode.jsonc 的 finmind.mcp 環境讀 FINMIND_TOKEN（MCP 與直連共用），避免 402 Payment Required
+if not TOKEN:
+    try:
+        import json as _json
+        _cfg = Path.home() / ".config" / "opencode" / "opencode.jsonc"
+        if _cfg.exists():
+            _j = _json.loads(_cfg.read_text(encoding="utf-8"))
+            TOKEN = _j.get("mcp", {}).get("finmind", {}).get("environment", {}).get("FINMIND_TOKEN", "") or TOKEN
+    except Exception:
+        pass
 
 FINMIND_BASE = "https://api.finmindtrade.com/api/v4/data"
+_SESSION = requests.Session()
 
 # Industry mapping (for gen_dashboard)
 INDUSTRY_MAP = {
@@ -92,7 +104,7 @@ def finmind(dataset, stock_id, start_date="2020-01-01"):
     params = {"dataset": dataset, "data_id": stock_id, "start_date": start_date}
     if TOKEN:
         params["token"] = TOKEN
-    r = requests.get(FINMIND_BASE, params=params, timeout=20)
+    r = _SESSION.get(FINMIND_BASE, params=params, timeout=20)
     r.raise_for_status()
     j = r.json()
     if j.get("status") != 200:
@@ -172,8 +184,9 @@ def fetch_finmind_annual(stock_id):
             if not v["has_row"]:
                 del div_by_year[k]
     # --- Price for yield (除息前一日收盤 / 最新價預估，FinMind 同源不增 API provider) ---
+    # 精簡：僅取 2023 起（覆蓋近3年殖利率計算），減半傳輸
     try:
-        price_rows = finmind("TaiwanStockPrice", stock_id, "2020-01-01")
+        price_rows = finmind("TaiwanStockPrice", stock_id, "2023-01-01")
         _price_map = {r["date"]: r["close"] for r in price_rows if r.get("close") is not None}
         _sorted_price_dates = sorted(_price_map.keys())
         _latest_close = _price_map[_sorted_price_dates[-1]] if _sorted_price_dates else None
@@ -223,9 +236,15 @@ def fetch_finmind_annual(stock_id):
         ni_parent = sum_type("EquityAttributableToOwnersOfParent")
         ni_total = sum_type("IncomeAfterTaxes")
         ni = ni_parent if ni_parent != 0 or any(r["type"]=="EquityAttributableToOwnersOfParent" for r in rows) else ni_total
-        eps = sum_type("EPS")
-        # EPS 誠實標註：FinMind 季 EPS 為增量，加總為年報加權平均；若後續新聞交叉差異大將以 ⚠️ 提示
-        eps_is_estimated = False
+        # EPS：年報採 YYYY-12-31 單筆加權平均，不可四季相加（P0-B1 修正）
+        eps_1231 = next((r["value"] for r in rows if r["type"] == "EPS" and r["date"][5:] == "12-31"), None)
+        if eps_1231 is not None:
+            eps = eps_1231
+            eps_is_estimated = False
+        else:
+            # 12-31 缺值（當年未完成或 FinMind 未回 12-31），以季加總暫估並標示
+            eps = sum_type("EPS")
+            eps_is_estimated = True
         if rev == 0 and gp == 0 and oi == 0:
             continue
         # BS
@@ -423,10 +442,11 @@ def fetch_goodinfo_expense_only(stock_id, _skip_delay=False):
     except Exception as e:
         return {}, f"Goodinfo error: {e}"
 
-def fetch_quarterly_monthly(stock_id):
-    """FinMind季報近8季 + 月報近12月，用於季月動能分頁"""
+def fetch_quarterly_monthly(stock_id, is_data=None):
+    """FinMind季報近8季 + 月報近12月，用於季月動能分頁（is_data 複用避免重抓）"""
     # Quarterly: from FinancialStatements quarterly rows
-    is_data = finmind("TaiwanStockFinancialStatements", stock_id, "2022-01-01")
+    if is_data is None:
+        is_data = finmind("TaiwanStockFinancialStatements", stock_id, "2022-01-01")
     # group by date
     q_by_date = defaultdict(dict)
     for r in is_data:
@@ -655,58 +675,59 @@ def cross_validate_with_news(metrics, years, enable=False):
     # 為避免 LLM 幻覺，無注入時回 info 而非 error
     return {"status": "checked", "msg": "已啟用新聞交叉（待外部注入 Tier1 數據）", "warnings": []}
 
-def fetch_single(stock_id, company_name=None, delay_goodinfo=True):
+def fetch_single(stock_id, company_name=None, delay_goodinfo=True, reuse_is_data=None, reuse_m_data=None):
     print(f"=== {stock_id} 開始 (FinMind 主力) ===")
     annual, is_by_year, bs_by_year, cf_by_year, div_by_year = fetch_finmind_annual(stock_id)
     print(f"  FinMind 年數: {sorted(annual.keys())}")
-    # Goodinfo expense
-    expense, status = fetch_goodinfo_expense_only(stock_id)
-    print(f"  Goodinfo expense: {status} -> covers {list(expense.keys())[:3]}")
-    if expense:
-        for y in sorted(expense.keys())[:3]:
-            print(f"    {y}: sell={expense[y].get('sell')} admin={expense[y].get('admin')} rd={expense[y].get('rd')}")
+    # Goodinfo expense — 預設 bypass（2026-09-03 起），僅 --with-goodinfo 時才執行
+    if os.getenv("GOODINFO_BYPASS") == "1":
+        expense, status = {}, "bypassed per FINMIND-only (預設不爬 Goodinfo，僅 --with-goodinfo 單檔觸發)"
+        print(f"  Goodinfo expense: {status}")
+    else:
+        expense, status = fetch_goodinfo_expense_only(stock_id)
+        print(f"  Goodinfo expense: {status} -> covers {list(expense.keys())[:3]}")
+        if expense:
+            for y in sorted(expense.keys())[:3]:
+                print(f"    {y}: sell={expense[y].get('sell')} admin={expense[y].get('admin')} rd={expense[y].get('rd')}")
     metrics = build_metrics(annual, expense)
-    # quarterly/monthly
-    quarterly, monthly = fetch_quarterly_monthly(stock_id)
+    # quarterly/monthly 複用 annual 的 is_data 避免重抓 FinancialStatements；若外層探測已抓則優先用探測快取
+    if reuse_is_data is not None or reuse_m_data is not None:
+        # reuse 來自 update_reports 探測：需合併 annual 的扁平 is_data 與探測的 is_data
+        is_flat = reuse_is_data if reuse_is_data is not None else []
+        if not is_flat:
+            for y, rows in is_by_year.items(): is_flat.extend(rows)
+        # 若 m_data 已有則直接轉 monthly，不再打 MonthRevenue
+        if reuse_m_data is not None:
+            # is_data 已有，m_data 直接用
+            # 為避免 fetch_quarterly_monthly 內再抓 MonthRevenue，手工構 monthly
+            quarterly, _ = fetch_quarterly_monthly(stock_id, is_data=is_flat)
+            # monthly 從 reuse_m_data 構
+            reuse_m_data_sorted = sorted(reuse_m_data, key=lambda x: x["date"])
+            monthly = []
+            for r in reuse_m_data_sorted[-12:]:
+                rev_yi = r["revenue"]/1e8 if r.get("revenue") else None
+                monthly.append({"date": r["date"][:7], "revenue": rev_yi})
+        else:
+            quarterly, monthly = fetch_quarterly_monthly(stock_id, is_data=is_flat)
+    else:
+        is_flat = []
+        for y, rows in is_by_year.items(): is_flat.extend(rows)
+        quarterly, monthly = fetch_quarterly_monthly(stock_id, is_data=is_flat)
     print(f"  Quarterly {len(quarterly)} 月度 {len(monthly)}")
-    # 決定公司名
-    if not company_name:
+    # 決定公司名（單次 TaiwanStockInfo，快取避免 3 次重複）
+    if not company_name or "（" in str(company_name) or company_name == stock_id:
         try:
-            info = finmind("TaiwanStockInfo", stock_id, "2020-01-01")
-            # fallback: use first name
-            names = [r.get("stock_name") for r in finmind("TaiwanStockInfo", stock_id, "2026-01-01")]
-            # last method: FinMind TaiwanStockInfo dataset via API direct
-            pass
-        except:
-            pass
-        # 嘗試用 FinMind的 TaiwanStockInfo via API without date filter? 用 info API
-        try:
-            r = requests.get("https://api.finmindtrade.com/api/v4/data", params={"dataset":"TaiwanStockInfo","data_id":stock_id,"start_date":"2026-08-01"}, timeout=10)
+            r = _SESSION.get("https://api.finmindtrade.com/api/v4/data", params={"dataset":"TaiwanStockInfo","data_id":stock_id}, timeout=10)
             d = r.json().get("data",[])
             if d:
-                company_name = d[0].get("stock_name", stock_id)
-        except:
-            company_name = stock_id
-        if not company_name or company_name==stock_id:
-            # fallback industry map or keep stock_id
-            company_name = INDUSTRY_MAP.get(stock_id, stock_id)
-            if company_name != stock_id and "（" in company_name:
-                company_name = stock_id  # avoid industry as name
-    # 補 names that are industry: try to get stock_name via another call
-    if company_name == stock_id or "（" in str(company_name):
-        try:
-            # use simple info
-            r = requests.get(f"https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInfo&data_id={stock_id}&start_date=2026-01-01", timeout=10)
-            j=r.json()
-            if j.get("data"):
-                # find stock_name
-                for row in j["data"]:
-                    if row.get("stock_name") and row.get("stock_name") != "":
+                # 取最新一筆有 stock_name 者
+                for row in reversed(d):
+                    if row.get("stock_name"):
                         company_name = row["stock_name"]
                         break
         except:
             pass
-        if "（" in str(company_name):
+        if not company_name or "（" in str(company_name):
             company_name = stock_id
 
     # income_statement / balance_sheet / cash_flow 彙整為 Goodinfo 格式兼容（供表格使用）
@@ -826,6 +847,12 @@ def fetch_single(stock_id, company_name=None, delay_goodinfo=True):
     }
     return result
 
+def _atomic_write_json(path: Path, data: dict):
+    """原子寫入：先寫 tmp 再 rename，避免並發半寫"""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    tmp.replace(path)
+
 def _resolve_raw_path(stock_id):
     """支援新舊位置：優先 raw_data/，回落 reports/ 舊檔（相容期）"""
     p_new = RAW_DATA_DIR / f"{stock_id}_raw_data.json"
@@ -935,16 +962,14 @@ def patch_existing(stock_id):
             j["monthly"] = m
         except Exception as e:
             print(f"  quarterly fetch failed {e}")
-    open(raw_path, "w", encoding="utf-8").write(json.dumps(j, ensure_ascii=False, indent=1))
+    _atomic_write_json(raw_path, j)
     print(f"  patched {stock_id} -> {raw_path}")
     return j
 
-def fetch_and_save(stock_id, company_name=None):
-    data = fetch_single(stock_id, company_name)
+def fetch_and_save(stock_id, company_name=None, reuse_is_data=None, reuse_m_data=None):
+    data = fetch_single(stock_id, company_name, reuse_is_data=reuse_is_data, reuse_m_data=reuse_m_data)
     out = RAW_DATA_DIR / f"{stock_id}_raw_data.json"
-    # If company_name resolves to different, still use stock_id prefix for gen_dashboard
-    # Also need company field for display
-    json.dump(data, open(out, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    _atomic_write_json(out, data)
     print(f"Saved {out} years {data['years'][-3:]}")
     return data
 
@@ -955,26 +980,34 @@ if __name__ == "__main__":
     ap.add_argument("--patch", type=str, help="patch existing raw_data expense for stock_id")
     ap.add_argument("--patch-all", action="store_true", help="patch all missing expenses")
     ap.add_argument("--with-news", action="store_true", help="啟用可信新聞最終交叉（發布前驗證，日常離線不啟用）")
+    ap.add_argument("--with-goodinfo", action="store_true", help="顯式觸發單檔 Goodinfo 費用細拆（預設 bypass）")
     ap.add_argument("--regen", nargs="+", help="重拉指定股票（FinMind主體，修正EPS/現金流等）")
     args = ap.parse_args()
     if args.with_news:
         os.environ["FETCH_WITH_NEWS"] = "1"
         WITH_NEWS = True
+    # 預設 bypass Goodinfo；僅 --with-goodinfo 才放行
+    if not args.with_goodinfo:
+        os.environ["GOODINFO_BYPASS"] = "1"
     if args.regen:
         for sid in args.regen:
             fetch_and_save(sid)
-            # regen 含 Goodinfo 時已在 fetch_goodinfo_expense_only 內隨機延遲，此處 FinMind 間隔 1s 足夠
-            time.sleep(1)
+            time.sleep(0.6)
     elif args.patch_all:
-        targets = ["2484","3605","4721","8069"]
-        for sid in targets:
-            patch_existing(sid)
-            # 2026-08-28 節流：30–60s + jitter，避免固定頻率
-            d = _random_goodinfo_delay()
-            print(f"  [節流] patch 間隔 {d:.1f}s 後下一檔")
-            time.sleep(d)
+        if os.getenv("GOODINFO_BYPASS")=="1":
+            print("[bypass] 預設 bypass Goodinfo，--patch-all 需加 --with-goodinfo 才執行")
+        else:
+            targets = ["2484","3605","4721","8069"]
+            for sid in targets:
+                patch_existing(sid)
+                d = _random_goodinfo_delay()
+                print(f"  [節流] patch 間隔 {d:.1f}s 後下一檔")
+                time.sleep(d)
     elif args.patch:
-        patch_existing(args.patch)
+        if os.getenv("GOODINFO_BYPASS")=="1":
+            print("[bypass] 預設 bypass Goodinfo，--patch 需加 --with-goodinfo 才執行")
+        else:
+            patch_existing(args.patch)
     elif args.stock_id:
         fetch_and_save(args.stock_id)
     else:
