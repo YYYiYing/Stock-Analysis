@@ -6,7 +6,6 @@ from pathlib import Path
 
 REPORTS = Path(__file__).parent.parent / "reports"
 RAW_DATA_DIR = REPORTS / "raw_data"
-DIVS_PATH = Path(__file__).parent / "div_per_share.json"
 
 def _raw_data_path(sid):
     """優先 raw_data/，回落 reports/ 舊位置（相容期）"""
@@ -15,10 +14,6 @@ def _raw_data_path(sid):
         return str(p_new)
     p_old = REPORTS / f"{sid}_raw_data.json"
     return str(p_new) if not p_old.exists() else str(p_old)
-try:
-    DIVS = json.load(open(DIVS_PATH, encoding="utf-8"))
-except:
-    DIVS = {}
 INDUSTRY = {
     "2603": "海運（貨櫃航運）",
     "3005": "電腦及週邊（強固型裝置）",
@@ -234,21 +229,16 @@ def generate(sid):
     M=j["metrics"]
     md=j.get("metadata",{})
     ver=j.get("verification", {"sanity_pass": True, "sanity": []})
-    divs=DIVS.get(sid, {})
-    # 優先 FinMind metrics.dividend_cash/stock/yield，fallback 舊 JSON
+    # 股利一律來自 FinMind metrics（TaiwanStockDividend），無 fallback
     div_cash_series=[]
     div_stock_series=[]
     div_yield_series=[]
     div_yield_is_est=[]
     for y in years:
-        # cash / stock / yield 優先 metrics，回退 DIVS（DIVS 僅現金）
         cash = M[y].get("dividend_cash")
         if cash is None:
             cash = M[y].get("dividend")
-        if cash is None:
-            cash = divs.get(y)
         stock = M[y].get("dividend_stock")
-        # 若 metrics 缺 stock 但有舊 JSON 無 stock，一律 None
         yld = M[y].get("dividend_yield")
         is_est = bool(M[y].get("dividend_yield_is_estimated"))
         div_cash_series.append(cash)
@@ -649,10 +639,57 @@ def generate(sid):
     cfg={"type":"line","data":{"labels":years,"datasets":[{"label":"現金部位","data":g("cash"),"borderColor":"#3182ce","backgroundColor":"rgba(49,130,206,0.1)","fill":True,"tension":0.3},{"label":"存貨","data":g("inventory"),"borderColor":"#805ad5","backgroundColor":"rgba(128,90,213,0.08)","fill":False,"tension":0.3},{"label":"自由現金流","data":g("fcf"),"borderColor":"#38a169","borderDash":[5,5],"tension":0.3}]},"options":{**common, "scales":scales}}
     charts.append(wrap("cashChart","現金與存貨趨勢",cfg))
 
-    # --- 季月動能（置頂首位、預設展開；P3：無最新季亦不隱藏，顯示至上一季）---
+    # --- 白話總結首位（2026-09-05 起：置於季月動能左方，預設 active；gen_dashboard 直讀 summaries，若無則 placeholder，inject 覆寫）---
+    summary_html_inner = None
+    summary_path = REPORTS / "summaries" / f"{sid}_summary.md"
+    if summary_path.exists():
+        try:
+            import html as _html_mod, re as _re_mod
+            _raw = summary_path.read_text(encoding="utf-8")
+            _lines = _raw.strip().split("\n")
+            _parts = []
+            _in_ul = False
+            for _raw_line in _lines:
+                _line = _raw_line.strip()
+                if not _line:
+                    if _in_ul: _parts.append("</ul>"); _in_ul=False
+                    continue
+                if _line.startswith("### "):
+                    if _in_ul: _parts.append("</ul>"); _in_ul=False
+                    _parts.append(f"<h4 style='color:#2b6cb0;margin:16px 0 8px;font-size:0.92rem;'>{_html_mod.escape(_line[4:].strip())}</h4>")
+                    continue
+                if _line.startswith("## "):
+                    if _in_ul: _parts.append("</ul>"); _in_ul=False
+                    _parts.append(f"<h3 style='color:#1a365d;margin:18px 0 10px;font-size:1rem;border-bottom:1px solid #e2e8f0;padding-bottom:6px;'>{_html_mod.escape(_line[3:].strip())}</h3>")
+                    continue
+                if _line.startswith("- ") or _line.startswith("▸ ") or _line.startswith("* "):
+                    if not _in_ul: _parts.append("<ul style='list-style:none;padding:0;margin:0 0 12px;'>"); _in_ul=True
+                    _c = _html_mod.escape(_line[2:].strip()); _c=_re_mod.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", _c)
+                    _parts.append(f"<li style='font-size:0.88rem;color:#4a5568;padding:4px 0 4px 18px;position:relative;'><span style='position:absolute;left:0;color:#3182ce;'>▸</span>{_c}</li>")
+                    continue
+                _m = _re_mod.match(r"^\d+\.\s+(.*)", _line)
+                if _m:
+                    if not _in_ul: _parts.append("<ul style='list-style:none;padding:0;margin:0 0 12px;'>"); _in_ul=True
+                    _c = _html_mod.escape(_m.group(1)); _c=_re_mod.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", _c)
+                    _parts.append(f"<li style='font-size:0.88rem;color:#4a5568;padding:4px 0 4px 18px;position:relative;'><span style='position:absolute;left:0;color:#3182ce;'>▸</span>{_c}</li>")
+                    continue
+                if _in_ul: _parts.append("</ul>"); _in_ul=False
+                _esc = _html_mod.escape(_line); _esc=_re_mod.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", _esc)
+                _parts.append(f"<p style='font-size:0.88rem;color:#4a5568;line-height:1.7;margin:0 0 10px;'>{_esc}</p>")
+            if _in_ul: _parts.append("</ul>")
+            summary_html_inner = "\n".join(_parts)
+        except Exception:
+            summary_html_inner = None
+    if summary_html_inner:
+        summary_content = f'<div id="summary" class="tab-content active"><div class="insight-box" style="background:linear-gradient(135deg,#fffbeb,#fefcbf);border-color:#fbd38d;"><h3>💬 白話總結 — 給非財務背景的一頁讀懂</h3><div style="font-size:0.82rem;color:#744210;margin-bottom:12px;">以下為 AI 閱讀本報告 4 頁（季月動能／經營／獲利／財務）後，以白話整合的解讀，數據皆來自 FinMind/MOPS，僅做翻譯不新增數據。</div></div>{summary_html_inner}<div style="text-align:center;padding:12px;color:#a0aec0;font-size:0.75rem;margin-top:8px;">本總結由 AI 依報告數據生成，僅為白話解讀，非投資建議 · 數據來源見頁首 MOPS/Goodinfo 連結</div></div>'
+    else:
+        summary_content = '<div id="summary" class="tab-content active"><div class="insight-box" style="background:linear-gradient(135deg,#fffbeb,#fefcbf);border-color:#fbd38d;"><h3>💬 白話總結 — 給非財務背景的一頁讀懂</h3><div style="font-size:0.82rem;color:#744210;margin-bottom:12px;">以下為 AI 閱讀本報告 4 頁（季月動能／經營／獲利／財務）後，以白話整合的解讀，數據皆來自 FinMind/MOPS，僅做翻譯不新增數據。</div></div><p style="font-size:0.88rem;color:#4a5568;line-height:1.7;margin:0 0 10px;">本檔白話總結尚未產生，請執行 <code>python scripts/inject_summary_tab.py ' + sid + ' --summary-file reports/summaries/' + sid + '_summary.md</code> 注入後即成為首頁預設頁。</p><div style="text-align:center;padding:12px;color:#a0aec0;font-size:0.75rem;margin-top:8px;">本總結由 AI 依報告數據生成，僅為白話解讀，非投資建議 · 數據來源見頁首 MOPS/Goodinfo 連結</div></div>'
+    summary_tab = '<div class="tab active" onclick="switchTab(\'summary\')" data-tab="summary">💬 白話總結</div>'
+
+    # --- 季月動能（2026-09-05 起改為第二位，預設非 active）---
     has_q = "quarterly" in j and isinstance(j["quarterly"], list) and len(j["quarterly"])>0
     has_m = "monthly" in j and isinstance(j["monthly"], list) and len(j["monthly"])>0
-    momentum_tab = '<div class="tab active" onclick="switchTab(\'momentum\')">📈 季月動能</div>'
+    momentum_tab = '<div class="tab" onclick="switchTab(\'momentum\')">📈 季月動能</div>'
     momentum_content = ""
     # 始終產出季月分頁（即使無季月亦給空狀態，不隱藏）；有資料則渲染圖表
     _has_momentum_data = has_q or has_m
@@ -834,10 +871,10 @@ def generate(sid):
                 return ("neutral","■ 持平")
         # 最新一季置頂（與年報精神一致：最新在前便於對比近期動能）
         rows_html="".join(f"<tr><td>{x.get('label')}</td><td>{(x.get('revenue',0)/1e8 if abs(x.get('revenue',0))>1e6 else x.get('revenue') or 0):.2f}</td><td>{(x.get('gross_margin') or 0):.1f}%</td><td>{(x.get('net_income',0)/1e8 if abs(x.get('net_income',0))>1e6 else x.get('net_income') or 0):.2f}</td><td>{(x.get('net_margin') or 0):.1f}%</td><td>{x.get('eps')}</td><td class=\"{q_trend(len(j["quarterly"])-1-idx)[0]}\">{q_trend(len(j["quarterly"])-1-idx)[1]}</td></tr>" for idx, x in enumerate(reversed(j["quarterly"])))
-        momentum_content=f'<div id="momentum" class="tab-content active"><div class="insight-box"><h3>季月動能亮點</h3>{momentum_insight}</div><div class="charts-grid">{momentum_charts}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>季度</th><th>營收(億)</th><th>毛利率</th><th>淨利(億)</th><th>淨利率</th><th>EPS</th><th>趨勢評估</th></tr></thead><tbody>'+rows_html+'</tbody></table></div></div>'
+        momentum_content=f'<div id="momentum" class="tab-content"><div class="insight-box"><h3>季月動能亮點</h3>{momentum_insight}</div><div class="charts-grid">{momentum_charts}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>季度</th><th>營收(億)</th><th>毛利率</th><th>淨利(億)</th><th>淨利率</th><th>EPS</th><th>趨勢評估</th></tr></thead><tbody>'+rows_html+'</tbody></table></div></div>'
     else:
         # P3：無季月資料亦不隱藏，顯示至上一季狀態（空狀態）
-        momentum_content=f'<div id="momentum" class="tab-content active"><div class="insight-box"><h3>季月動能亮點</h3><ul><li>季月數據截至上一季，尚無新一季申報</li></ul></div><div style="text-align:center;padding:24px;color:#718096;font-size:0.88rem;">本期季月資料暫未更新，圖表將於申報後自動補齊</div></div>'
+        momentum_content=f'<div id="momentum" class="tab-content"><div class="insight-box"><h3>季月動能亮點</h3><ul><li>季月數據截至上一季，尚無新一季申報</li></ul></div><div style="text-align:center;padding:24px;color:#718096;font-size:0.88rem;">本期季月資料暫未更新，圖表將於申報後自動補齊</div></div>'
     ops_charts="".join(charts[0:4])
     profit_charts="".join(charts[4:8])
     fin_charts="".join(charts[8:12])
@@ -871,10 +908,11 @@ def generate(sid):
 <style>{CSS}</style>
 </head>
 <body>
-<div class="header"><div><h1>{name} ({sid}) 財務分析儀表板</h1><div class="subtitle">資料來源：FinMind 主力 + Goodinfo 費用細拆{subtitle_extra}｜分析期間：{years[0]} – {years[-1]}｜金額單位：億元 (NTD)<br><span style="opacity:0.95">🏭 產業：{industry_full}</span></div></div><div class="badge">🏢 {industry_full}</div></div>
+<div class="header"><div><h1>{name} ({sid}) 財務分析儀表板</h1><div class="subtitle">資料來源：FinMind 主力 + Goodinfo 費用細拆{subtitle_extra}｜分析期間：{years[0]} – {years[-1]}｜金額單位：億元 (NTD)</div></div><div class="badge">🏢 {industry_full}</div></div>
 <div class="verify-bar">{sanity_badge}<span>抓取時間：{fetched}</span><a href="{gi['income_statement']}" target="_blank">🔍 Goodinfo 原始數據</a><a href="{mops}" target="_blank">📋 MOPS 官方申報</a><a href="index.html">← 回總覽</a></div>
-{warn_html}
-<div class="tabs">{momentum_tab}<div class="tab" onclick="switchTab('ops')">📊 經營分析</div><div class="tab" onclick="switchTab('profit')">💰 獲利分析</div><div class="tab" onclick="switchTab('finance')">🏦 財務健全度</div></div>
+ {warn_html}
+<div class="tabs">{summary_tab}{momentum_tab}<div class="tab" onclick="switchTab('ops')">📊 經營分析</div><div class="tab" onclick="switchTab('profit')">💰 獲利分析</div><div class="tab" onclick="switchTab('finance')">🏦 財務健全度</div></div>
+{summary_content}
 {momentum_content}
 <div id="ops" class="tab-content">{k1}<div class="insight-box"><h3>🔍 經營亮點</h3>{ins1}</div><div class="charts-grid">{ops_charts}</div><div class="table-wrap">{t1}</div></div>
 <div id="profit" class="tab-content">{k2}<div class="insight-box"><h3>🔍 獲利亮點</h3>{ins2}</div><div class="charts-grid">{profit_charts}</div><div class="table-wrap">{t2}</div></div>

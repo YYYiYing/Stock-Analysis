@@ -21,7 +21,7 @@ from pathlib import Path
 
 REPORTS = Path(__file__).parent.parent / "reports"
 
-TAB_HEADER_HTML = '<div class="tab" onclick="switchTab(\'summary\')" data-tab="summary">💬 白話總結</div>'
+TAB_HEADER_HTML = '<div class="tab active" onclick="switchTab(\'summary\')" data-tab="summary">💬 白話總結</div>'
 
 def load_summary_text(args, sid):
     if args.text:
@@ -105,7 +105,7 @@ def md_to_html(md_text):
     return "\n".join(html_parts)
 
 def build_summary_content(summary_html_inner):
-    return f"""<div id="summary" class="tab-content">
+    return f"""<div id="summary" class="tab-content active">
 <div class="insight-box" style="background:linear-gradient(135deg,#fffbeb,#fefcbf);border-color:#fbd38d;">
 <h3>💬 白話總結 — 給非財務背景的一頁讀懂</h3>
 <div style="font-size:0.82rem;color:#744210;margin-bottom:12px;">以下為 AI 閱讀本報告 4 頁（季月動能／經營／獲利／財務）後，以白話整合的解讀，數據皆來自 FinMind/MOPS，僅做翻譯不新增數據。</div>
@@ -120,40 +120,45 @@ def inject_one(html_path: Path, summary_text: str):
     summary_block = build_summary_content(summary_inner)
 
     # --- 1. 處理 tab 頭 ---
-    # 移除舊的 summary tab 頭（冪等）
-    html = re.sub(r'<div class="tab"[^>]*data-tab="summary"[^>]*>.*?</div>', '', html)
-    # 也移除舊的 onclick summary（兼容舊版無 data-tab）
-    html = re.sub(r'<div class="tab"[^>]*onclick="switchTab\(\'summary\'\)"[^>]*>.*?</div>', '', html)
+    # 移除舊的 summary tab 頭（冪等，含 active / 非 active 兩種）
+    html = re.sub(r'<div class="tab[^"]*?"[^>]*data-tab="summary"[^>]*>.*?</div>', '', html)
+    html = re.sub(r'<div class="tab[^"]*?"[^>]*onclick="switchTab\(\'summary\'\)"[^>]*>.*?</div>', '', html)
 
-    # 在財務健全度 tab 後插入新 tab 頭
-    finance_tab_pattern = r"(<div class=\"tab\"[^>]*onclick=\"switchTab\('finance'\)\"[^>]*>.*?</div>)"
-    if re.search(finance_tab_pattern, html):
-        html = re.sub(finance_tab_pattern, r"\1" + TAB_HEADER_HTML, html, count=1)
+    # 將白話總結置於季月動能左方（tabs 首位），作為預設頁
+    # 先將原本季月動能的 active 去除，改由 summary 持有
+    html = html.replace(
+        '<div class="tab active" onclick="switchTab(\'momentum\')"',
+        '<div class="tab" onclick="switchTab(\'momentum\')"'
+    )
+
+    # 在季月動能 tab 前插入 summary（首位）
+    momentum_tab_pattern = r"(<div class=\"tab\"[^>]*onclick=\"switchTab\('momentum'\)\"[^>]*>.*?</div>)"
+    if re.search(momentum_tab_pattern, html):
+        html = re.sub(momentum_tab_pattern, TAB_HEADER_HTML + r"\1", html, count=1)
     else:
-        # fallback: 在 </div>\n<div id="momentum" 前的 tabs 區塊末尾插入
-        html = html.replace("</div>\n<div id=\"momentum\"", TAB_HEADER_HTML + "\n<div id=\"momentum\"")
-        # 另一 fallback: 直接在 <div class=\"tabs\"> 內末尾
+        # fallback: 在 <div class="tabs"> 後直接插入
         if TAB_HEADER_HTML not in html:
             html = html.replace('<div class="tabs">', '<div class="tabs">' + TAB_HEADER_HTML, 1)
 
     # --- 2. 處理 tab 內容 ---
-    # 移除舊的 summary tab-content
-    html = re.sub(r'<div id="summary" class="tab-content">.*?</div>\s*(?=<div style="text-align:center)', '', html, flags=re.DOTALL)
-    # 更寬鬆的移除（若 footer 樣式不同）
+    # 移除舊的 summary tab-content（含 active 變體）
+    html = re.sub(r'<div id="summary" class="tab-content[^"]*">.*?</div>\s*(?=<div style="text-align:center)', '', html, flags=re.DOTALL)
     if '<div id="summary"' in html:
-        html = re.sub(r'<div id="summary" class="tab-content">.*?</div>\s*(?=<script>)', '', html, flags=re.DOTALL)
-        # 最終暴力移除殘留
+        html = re.sub(r'<div id="summary" class="tab-content[^"]*">.*?</div>\s*(?=<script>)', '', html, flags=re.DOTALL)
         if '<div id="summary"' in html:
-            # 找 id=summary 到下一個 <div style="text-align:center;padding:20px 或 <script>
             html = re.sub(r'<div id="summary".*?</div>\s*<div style="text-align:center', '<div style="text-align:center', html, flags=re.DOTALL)
 
-    # 在 finance tab-content 後插入 summary
-    finance_block_pattern = r'(<div id="finance" class="tab-content">.*?</div>)\s*(<div style="text-align:center)'
-    m = re.search(finance_block_pattern, html, flags=re.DOTALL)
-    if m:
-        html = html.replace(m.group(0), m.group(1) + "\n" + summary_block + "\n" + m.group(2), 1)
+    # 將原本 momentum 的 active 去除，改由 summary 持有
+    html = html.replace(
+        '<div id="momentum" class="tab-content active">',
+        '<div id="momentum" class="tab-content">'
+    )
+
+    # 在 momentum 內容前插入 summary（成為首個 tab-content）
+    momentum_block_pattern = r'(<div id="momentum" class="tab-content[^"]*">)'
+    if re.search(momentum_block_pattern, html):
+        html = re.sub(momentum_block_pattern, summary_block + r"\n\1", html, count=1)
     else:
-        # fallback: 在 </div>\n<div style="text-align:center;padding:20px 之前插入
         html = html.replace('<div style="text-align:center;padding:20px', summary_block + '\n<div style="text-align:center;padding:20px', 1)
 
     html_path.write_text(html, encoding="utf-8")
@@ -163,11 +168,24 @@ def inject_one(html_path: Path, summary_text: str):
 def remove_one(html_path: Path):
     html = html_path.read_text(encoding="utf-8")
     orig_len = len(html)
-    html = re.sub(r'<div class="tab"[^>]*data-tab="summary"[^>]*>.*?</div>', '', html)
-    html = re.sub(r'<div class="tab"[^>]*onclick="switchTab\(\'summary\'\)"[^>]*>.*?</div>', '', html)
-    html = re.sub(r'<div id="summary" class="tab-content">.*?</div>\s*(?=<div style="text-align:center)', '', html, flags=re.DOTALL)
+    had_summary_active = 'id="summary" class="tab-content active"' in html
+    html = re.sub(r'<div class="tab[^"]*?"[^>]*data-tab="summary"[^>]*>.*?</div>', '', html)
+    html = re.sub(r'<div class="tab[^"]*?"[^>]*onclick="switchTab\(\'summary\'\)"[^>]*>.*?</div>', '', html)
+    html = re.sub(r'<div id="summary" class="tab-content[^"]*">.*?</div>\s*(?=<div style="text-align:center)', '', html, flags=re.DOTALL)
     if '<div id="summary"' in html:
         html = re.sub(r'<div id="summary".*?</div>\s*(?=<script>)', '', html, flags=re.DOTALL)
+    # 若移除的是 active 頁，需將季月動能恢復為預設 active
+    if had_summary_active:
+        if '<div id="momentum" class="tab-content active">' not in html:
+            html = html.replace(
+                '<div id="momentum" class="tab-content">',
+                '<div id="momentum" class="tab-content active">', 1
+            )
+        if '<div class="tab active" onclick="switchTab(\'momentum\')"' not in html:
+            html = html.replace(
+                '<div class="tab" onclick="switchTab(\'momentum\')"',
+                '<div class="tab active" onclick="switchTab(\'momentum\')"', 1
+            )
     html_path.write_text(html, encoding="utf-8")
     print(f"OK removed summary tab -> {html_path.name} ({orig_len:,} -> {len(html):,} bytes)")
 
