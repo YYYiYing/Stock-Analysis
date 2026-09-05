@@ -17,6 +17,46 @@ def get_stock_info(filename):
     return None, None
 
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
+STOCK_PRODUCT_PATH = REPORTS_DIR / "stock_products.json"
+_STOCK_PRODUCT_CACHE = None
+
+def _load_stock_products():
+    global _STOCK_PRODUCT_CACHE
+    if _STOCK_PRODUCT_CACHE is not None:
+        return _STOCK_PRODUCT_CACHE
+    if STOCK_PRODUCT_PATH.exists():
+        try:
+            j = json.loads(STOCK_PRODUCT_PATH.read_text(encoding="utf-8"))
+            if isinstance(j, dict):
+                _STOCK_PRODUCT_CACHE = j
+                return j
+        except Exception:
+            pass
+    _STOCK_PRODUCT_CACHE = {}
+    return {}
+
+def _get_industry_label(sid: str) -> str:
+    prod_map = _load_stock_products()
+    if sid in prod_map:
+        v = prod_map[sid]
+        if isinstance(v, str):
+            return v.strip()
+        if isinstance(v, dict):
+            ind = (v.get("industry") or "").strip()
+            prod = (v.get("product") or "").strip()
+            if ind and prod:
+                return f"{ind}/{prod}"
+            return ind or prod
+    # 回落：FinMind 快取
+    meta_path = REPORTS_DIR / ".stock_meta.json"
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            info = meta.get(sid, {})
+            return (info.get("curated_industry") or info.get("industry") or "").strip()
+        except Exception:
+            pass
+    return ""
 def _raw_path(stock_id):
     p_new = REPORTS_DIR / "raw_data" / f"{stock_id}_raw_data.json"
     if p_new.exists():
@@ -284,17 +324,20 @@ def build_summary(stock_id, latest, prev, m, m_prev, ann_score=None, ann_reason=
 
 def generate_index_html(reports):
     report_rows = ""
-    for stock_id, company_name, filename, ann_emoji, ann_cls, mom_emoji, mom_cls, light_title, summary in reports:
+    for stock_id, company_name, industry_label, filename, ann_emoji, ann_cls, mom_emoji, mom_cls, light_title, summary in reports:
         if mom_emoji == "⚪":
             light_html = f'<span class="light {ann_cls}" title="{light_title}">{ann_emoji}</span>'
         else:
             light_html = f'<span class="light {ann_cls}" title="{light_title}">{ann_emoji}</span><span class="light {mom_cls}" title="{light_title}" style="margin-left:4px;">{mom_emoji}</span>'
-        # summary 需 escape
+        # 產業欄位精簡顯示，hover 顯示完整
+        industry_cell = f'<span title="{industry_label}">{industry_label or "—"}</span>' if industry_label else "—"
+        # data-* 用於前端搜尋（代號 / 名稱）
         report_rows += f"""
-        <tr>
+        <tr data-code="{stock_id}" data-name="{company_name}">
             <td class="light-cell">{light_html}</td>
             <td><a href="{filename}">{stock_id}</a></td>
             <td><a href="{filename}">{company_name}</a></td>
+            <td class="industry">{industry_cell}</td>
             <td class="summary">{summary}</td>
             <td><a href="{filename}" class="btn">查看分析</a></td>
         </tr>"""
@@ -321,8 +364,10 @@ def generate_index_html(reports):
         table {{ width: 100%; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-collapse: collapse; }}
         th {{ background: #2b6cb0; color: white; padding: 14px 16px; text-align: left; font-weight: 600; font-size: 0.88rem; white-space: nowrap; }}
         th.light-col {{ width: 110px; min-width: 110px; text-align: center; }}
+        th.industry-col {{ min-width: 140px; max-width: 180px; }}
         th.summary-col {{ min-width: 360px; }}
         td {{ padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 0.88rem; }}
+        td.industry {{ color: #4a5568; font-size: 0.82rem; line-height: 1.45; max-width: 180px; white-space: normal; word-break: break-word; }}
         tr:hover td {{ background: #f7fafc; }}
         a {{ color: #3182ce; text-decoration: none; }}
         a:hover {{ text-decoration: underline; }}
@@ -337,14 +382,30 @@ def generate_index_html(reports):
         .light.blue {{ background: #bee3f8; }}
         .light.gray {{ background: #e2e8f0; }}
         .summary {{ color: #4a5568; font-size: 0.84rem; line-height: 1.55; max-width: 480px; white-space: normal; word-break: break-word; }}
+        .search-bar {{ display: flex; gap: 12px; align-items: center; margin-bottom: 16px; background: white; padding: 14px 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }}
+        .search-wrap {{ flex: 1; position: relative; display: flex; align-items: center; }}
+        .search-wrap .search-icon {{ position: absolute; left: 12px; color: #a0aec0; font-size: 1rem; pointer-events: none; }}
+        .search-wrap input {{ width: 100%; padding: 10px 36px 10px 36px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 0.92rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }}
+        .search-wrap input:focus {{ border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49,130,206,0.12); }}
+        .search-wrap input::placeholder {{ color: #a0aec0; }}
+        .search-clear {{ position: absolute; right: 8px; background: #edf2f7; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 0.8rem; color: #718096; line-height: 1; }}
+        .search-clear.show {{ display: flex; }}
+        .search-clear:hover {{ background: #e2e8f0; color: #2d3748; }}
+        .search-meta {{ font-size: 0.85rem; color: #718096; white-space: nowrap; }}
+        .search-meta b {{ color: #2b6cb0; }}
+        .no-result {{ display: none; text-align: center; padding: 32px 16px; color: #718096; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); font-size: 0.9rem; margin-top: 0; }}
+        .no-result.show {{ display: block; }}
+        tr.hidden {{ display: none; }}
         .legend {{ display: flex; gap: 12px; align-items: center; justify-content: center; margin: 14px 0 6px; font-size: 0.78rem; color: #718096; flex-wrap: wrap; }}
         .legend span {{ display: inline-flex; align-items: center; gap: 4px; }}
         .legend i {{ width: 14px; height: 14px; border-radius: 50%; display: inline-block; }}
         .footer {{ text-align: center; margin-top: 18px; color: #718096; font-size: 0.82rem; }}
         @media (max-width: 768px) {{
             .container {{ padding: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }}
-            .header {{ padding: 18px 16px; min-width: 720px; width: 100%; box-sizing: border-box; }}
-            table {{ font-size: 0.8rem; min-width: 720px; }}
+            .header {{ padding: 18px 16px; min-width: 860px; width: 100%; box-sizing: border-box; }}
+            .search-bar {{ min-width: 860px; box-sizing: border-box; }}
+            .no-result {{ min-width: 860px; box-sizing: border-box; }}
+            table {{ font-size: 0.8rem; min-width: 860px; }}
             th, td {{ padding: 10px 8px; }}
             .summary {{ font-size: 0.76rem; max-width: 220px; line-height: 1.5; }}
         }}
@@ -356,19 +417,29 @@ def generate_index_html(reports):
             <h1>台股財務分析儀表板</h1>
             <div class="subtitle"><span class="sub-line">自動生成的三維財務分析報告總覽｜最後更新：{datetime.now().strftime('%Y-%m-%d %H:%M')}</span><span class="sub-line">燈號：左「年燈號」長線體質(ROE/淨利/負債) / 右「季月燈號」短線動能(QoQ/YoY/MoM)｜摘要：長線；短線一句話直覺詮釋雙燈號因果</span></div>
         </div>
-<table>
+        <div class="search-bar">
+            <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="搜尋股票代號或公司名稱，例如：2330 台積電" autocomplete="off">
+                <button class="search-clear" id="searchClear" title="清除搜尋" aria-label="清除搜尋">✕</button>
+            </div>
+            <div class="search-meta" id="searchMeta">共 <b id="totalCount">{len(reports)}</b> 檔</div>
+        </div>
+<table id="stockTable">
             <thead>
                 <tr>
                     <th class="light-col" title="左：年燈號(長線體質) / 右：季月燈號(短線動能)">燈號<br><span style="font-size:0.7em; opacity:0.9;">年 / 季月</span></th>
                     <th>股票代碼</th>
                     <th>公司名稱</th>
+                    <th class="industry-col">產業</th>
                     <th class="summary-col">分析摘要</th>
                     <th>操作</th>
                 </tr>
             </thead>
-            <tbody>{report_rows}
+            <tbody id="stockTbody">{report_rows}
             </tbody>
         </table>
+        <div id="noResult" class="no-result">查無符合「<span id="noResultQuery"></span>」的標的</div>
         <div class="legend">
             <span>🔵 優異</span>
             <span>🟢 良好</span>
@@ -378,6 +449,44 @@ def generate_index_html(reports):
         </div>
         <div class="footer">資料來源：Goodinfo.tw｜分析期間：最近三年｜金額單位：億元 (NTD)｜點擊代碼/名稱查看三維儀表板</div>
     </div>
+    <script>
+    (function() {{
+        const input = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('searchClear');
+        const tbody = document.getElementById('stockTbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const meta = document.getElementById('searchMeta');
+        const noResult = document.getElementById('noResult');
+        const noResultQuery = document.getElementById('noResultQuery');
+        const total = rows.length;
+        function updateMeta(visible, q) {{
+            if (q) {{
+                meta.innerHTML = '顯示 <b>' + visible + '</b> / ' + total + ' 檔';
+            }} else {{
+                meta.innerHTML = '共 <b>' + total + '</b> 檔';
+            }}
+        }}
+        function doFilter() {{
+            const q = input.value.trim().toLowerCase();
+            let visible = 0;
+            rows.forEach(function(tr) {{
+                const code = (tr.dataset.code || '').toLowerCase();
+                const name = (tr.dataset.name || '').toLowerCase();
+                const hit = !q || code.indexOf(q) !== -1 || name.indexOf(q) !== -1;
+                tr.classList.toggle('hidden', !hit);
+                if (hit) visible++;
+            }});
+            updateMeta(visible, q);
+            const hasNoResult = visible === 0;
+            noResult.classList.toggle('show', hasNoResult);
+            if (hasNoResult) noResultQuery.textContent = input.value.trim();
+            clearBtn.classList.toggle('show', q.length > 0);
+        }}
+        input.addEventListener('input', doFilter);
+        clearBtn.addEventListener('click', function() {{ input.value = ''; doFilter(); input.focus(); }});
+        input.addEventListener('keydown', function(e) {{ if (e.key === 'Escape') {{ input.value = ''; doFilter(); }} }});
+    }})();
+    </script>
 </body>
 </html>"""
 
@@ -419,10 +528,10 @@ def main():
                     summary = build_summary(stock_id, None, None, None, None)
                     light_emoji, light_cls = ann_emoji, ann_cls
                     # For dual display, keep both
-                    reports.append((stock_id, company_name, file.name, ann_emoji, ann_cls, mom_emoji, mom_cls, light_title, summary))
+                    reports.append((stock_id, company_name, _get_industry_label(stock_id), file.name, ann_emoji, ann_cls, mom_emoji, mom_cls, light_title, summary))
                     continue
                 else:
-                    reports.append((stock_id, company_name, file.name, "⚪", "gray", "⚪", "gray", "無資料", "尚無摘要"))
+                    reports.append((stock_id, company_name, _get_industry_label(stock_id), file.name, "⚪", "gray", "⚪", "gray", "無資料", "尚無摘要"))
                     continue
                 latest = prev = None
             else:
@@ -432,7 +541,7 @@ def main():
                 ann_score, ann_reason = decide_annual(stock_id, m, m_prev)
                 mom_score, mom_reason, _ = decide_momentum(stock_id, j=j)
                 summary = build_summary(stock_id, latest, prev, m, m_prev, ann_score, ann_reason, mom_score, mom_reason)
-            reports.append((stock_id, company_name, file.name, ann_emoji, ann_cls, mom_emoji, mom_cls, light_title, summary))
+            reports.append((stock_id, company_name, _get_industry_label(stock_id), file.name, ann_emoji, ann_cls, mom_emoji, mom_cls, light_title, summary))
     reports.sort(key=lambda x: x[0])
     html_content = generate_index_html(reports)
     output_file = reports_dir / 'index.html'

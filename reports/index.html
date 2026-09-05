@@ -20,8 +20,10 @@
         table { width: 100%; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-collapse: collapse; }
         th { background: #2b6cb0; color: white; padding: 14px 16px; text-align: left; font-weight: 600; font-size: 0.88rem; white-space: nowrap; }
         th.light-col { width: 110px; min-width: 110px; text-align: center; }
+        th.industry-col { min-width: 140px; max-width: 180px; }
         th.summary-col { min-width: 360px; }
         td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 0.88rem; }
+        td.industry { color: #4a5568; font-size: 0.82rem; line-height: 1.45; max-width: 180px; white-space: normal; word-break: break-word; }
         tr:hover td { background: #f7fafc; }
         a { color: #3182ce; text-decoration: none; }
         a:hover { text-decoration: underline; }
@@ -36,14 +38,30 @@
         .light.blue { background: #bee3f8; }
         .light.gray { background: #e2e8f0; }
         .summary { color: #4a5568; font-size: 0.84rem; line-height: 1.55; max-width: 480px; white-space: normal; word-break: break-word; }
+        .search-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; background: white; padding: 14px 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+        .search-wrap { flex: 1; position: relative; display: flex; align-items: center; }
+        .search-wrap .search-icon { position: absolute; left: 12px; color: #a0aec0; font-size: 1rem; pointer-events: none; }
+        .search-wrap input { width: 100%; padding: 10px 36px 10px 36px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 0.92rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        .search-wrap input:focus { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49,130,206,0.12); }
+        .search-wrap input::placeholder { color: #a0aec0; }
+        .search-clear { position: absolute; right: 8px; background: #edf2f7; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 0.8rem; color: #718096; line-height: 1; }
+        .search-clear.show { display: flex; }
+        .search-clear:hover { background: #e2e8f0; color: #2d3748; }
+        .search-meta { font-size: 0.85rem; color: #718096; white-space: nowrap; }
+        .search-meta b { color: #2b6cb0; }
+        .no-result { display: none; text-align: center; padding: 32px 16px; color: #718096; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); font-size: 0.9rem; margin-top: 0; }
+        .no-result.show { display: block; }
+        tr.hidden { display: none; }
         .legend { display: flex; gap: 12px; align-items: center; justify-content: center; margin: 14px 0 6px; font-size: 0.78rem; color: #718096; flex-wrap: wrap; }
         .legend span { display: inline-flex; align-items: center; gap: 4px; }
         .legend i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
         .footer { text-align: center; margin-top: 18px; color: #718096; font-size: 0.82rem; }
         @media (max-width: 768px) {
             .container { padding: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-            .header { padding: 18px 16px; min-width: 720px; width: 100%; box-sizing: border-box; }
-            table { font-size: 0.8rem; min-width: 720px; }
+            .header { padding: 18px 16px; min-width: 860px; width: 100%; box-sizing: border-box; }
+            .search-bar { min-width: 860px; box-sizing: border-box; }
+            .no-result { min-width: 860px; box-sizing: border-box; }
+            table { font-size: 0.8rem; min-width: 860px; }
             th, td { padding: 10px 8px; }
             .summary { font-size: 0.76rem; max-width: 220px; line-height: 1.5; }
         }
@@ -53,441 +71,527 @@
     <div class="container">
         <div class="header">
             <h1>台股財務分析儀表板</h1>
-            <div class="subtitle"><span class="sub-line">自動生成的三維財務分析報告總覽｜最後更新：2026-09-03 16:22</span><span class="sub-line">燈號：左「年燈號」長線體質(ROE/淨利/負債) / 右「季月燈號」短線動能(QoQ/YoY/MoM)｜摘要：長線；短線一句話直覺詮釋雙燈號因果</span></div>
+            <div class="subtitle"><span class="sub-line">自動生成的三維財務分析報告總覽｜最後更新：2026-09-05 14:34</span><span class="sub-line">燈號：左「年燈號」長線體質(ROE/淨利/負債) / 右「季月燈號」短線動能(QoQ/YoY/MoM)｜摘要：長線；短線一句話直覺詮釋雙燈號因果</span></div>
         </div>
-<table>
+        <div class="search-bar">
+            <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="搜尋股票代號或公司名稱，例如：2330 台積電" autocomplete="off">
+                <button class="search-clear" id="searchClear" title="清除搜尋" aria-label="清除搜尋">✕</button>
+            </div>
+            <div class="search-meta" id="searchMeta">共 <b id="totalCount">62</b> 檔</div>
+        </div>
+<table id="stockTable">
             <thead>
                 <tr>
                     <th class="light-col" title="左：年燈號(長線體質) / 右：季月燈號(短線動能)">燈號<br><span style="font-size:0.7em; opacity:0.9;">年 / 季月</span></th>
                     <th>股票代碼</th>
                     <th>公司名稱</th>
+                    <th class="industry-col">產業</th>
                     <th class="summary-col">分析摘要</th>
                     <th>操作</th>
                 </tr>
             </thead>
-            <tbody>
-        <tr>
+            <tbody id="stockTbody">
+        <tr data-code="1303" data-name="南亞">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+22% YoY+27%">🟠</span><span class="light blue" title="年獲利偏低｜季月轉強 QoQ+22% YoY+27%" style="margin-left:4px;">🔵</span></td>
             <td><a href="1303_南亞_analysis.html">1303</a></td>
             <td><a href="1303_南亞_analysis.html">南亞</a></td>
+            <td class="industry"><span title="塑膠工業/電子材料、塑膠">塑膠工業/電子材料、塑膠</span></td>
             <td class="summary">長線獲利偏低（ROE1%）體質待改善；短線動能轉強（QoQ+22% YoY+27%）。營收2599億 +0.1%｜EPS0.6 ROE1%｜負債39%穩健。</td>
             <td><a href="1303_南亞_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="1904" data-name="正隆">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+12%">🟠</span><span class="light green" title="年獲利偏低｜季月轉強 QoQ+12%" style="margin-left:4px;">🟢</span></td>
             <td><a href="1904_正隆_analysis.html">1904</a></td>
             <td><a href="1904_正隆_analysis.html">正隆</a></td>
+            <td class="industry"><span title="造紙工業/工業用紙">造紙工業/工業用紙</span></td>
             <td class="summary">長線獲利偏低（ROE3%）體質待改善；短線動能轉強（QoQ+12%）。營收430億 -4.9%｜EPS0.7 ROE3%｜負債58%穩健。</td>
             <td><a href="1904_正隆_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2049" data-name="上銀">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+18% YoY+27%">🟠</span><span class="light blue" title="年獲利偏低｜季月轉強 QoQ+18% YoY+27%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2049_上銀_analysis.html">2049</a></td>
             <td><a href="2049_上銀_analysis.html">上銀</a></td>
+            <td class="industry"><span title="電機機械/線性滑軌・滾珠螺桿龍頭">電機機械/線性滑軌・滾珠螺桿龍頭</span></td>
             <td class="summary">長線獲利偏低（ROE4%）體質待改善；短線動能轉強（QoQ+18% YoY+27%）。營收243億 -0.5%｜EPS4.3 ROE4%｜負債31%穩健。</td>
             <td><a href="2049_上銀_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2059" data-name="川湖">
             <td class="light-cell"><span class="light blue" title="年優異｜季月轉強 QoQ+99% YoY+156%">🔵</span><span class="light blue" title="年優異｜季月轉強 QoQ+99% YoY+156%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2059_川湖_analysis.html">2059</a></td>
             <td><a href="2059_川湖_analysis.html">川湖</a></td>
+            <td class="industry"><span title="電子零組件/伺服器滑軌龍頭">電子零組件/伺服器滑軌龍頭</span></td>
             <td class="summary">長線體質優異，獲利與負債皆健康；短線動能轉強（QoQ+99% YoY+156%）。營收175億 +72.8%｜EPS103.2 ROE35%｜負債20%穩健。</td>
             <td><a href="2059_川湖_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2301" data-name="光寶科">
             <td class="light-cell"><span class="light green" title="年良好｜季月轉強 QoQ+21% YoY+30%">🟢</span><span class="light blue" title="年良好｜季月轉強 QoQ+21% YoY+30%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2301_光寶科_analysis.html">2301</a></td>
             <td><a href="2301_光寶科_analysis.html">光寶科</a></td>
+            <td class="industry"><span title="電子零組件/電源・光電元件">電子零組件/電源・光電元件</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能轉強（QoQ+21% YoY+30%）。營收1661億 +21.1%｜EPS6.6 ROE17%｜負債56%穩健。</td>
             <td><a href="2301_光寶科_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2303" data-name="聯電">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+13% YoY+17%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+13% YoY+17%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2303_聯電_analysis.html">2303</a></td>
             <td><a href="2303_聯電_analysis.html">聯電</a></td>
+            <td class="industry"><span title="半導體/晶圓代工">半導體/晶圓代工</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+13% YoY+17%）。營收2376億 +2.3%｜EPS3.3 ROE11%｜負債34%穩健。</td>
             <td><a href="2303_聯電_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2308" data-name="台達電">
             <td class="light-cell"><span class="light green" title="年良好｜季月轉強 QoQ+15% YoY+48%">🟢</span><span class="light blue" title="年良好｜季月轉強 QoQ+15% YoY+48%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2308_台達電_analysis.html">2308</a></td>
             <td><a href="2308_台達電_analysis.html">台達電</a></td>
+            <td class="industry"><span title="電子零組件/電源・散熱">電子零組件/電源・散熱</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能轉強（QoQ+15% YoY+48%）。營收5549億 +31.8%｜EPS23.1 ROE18%｜負債49%穩健。</td>
             <td><a href="2308_台達電_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2313" data-name="華通">
             <td class="light-cell"><span class="light green" title="年良好｜季月震盪">🟢</span><span class="light yellow" title="年良好｜季月震盪" style="margin-left:4px;">🟡</span></td>
             <td><a href="2313_華通_analysis.html">2313</a></td>
             <td><a href="2313_華通_analysis.html">華通</a></td>
+            <td class="industry"><span title="電子零組件/PCB・HDI">電子零組件/PCB・HDI</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能震盪，持平整理。營收760億 +4.9%｜EPS5.5 ROE14%｜負債47%穩健。</td>
             <td><a href="2313_華通_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2324" data-name="仁寶">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+18% YoY+32%">🟠</span><span class="light blue" title="年獲利偏低｜季月轉強 QoQ+18% YoY+32%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2324_仁寶_analysis.html">2324</a></td>
             <td><a href="2324_仁寶_analysis.html">仁寶</a></td>
+            <td class="industry"><span title="電腦及週邊/筆電・伺服器代工">電腦及週邊/筆電・伺服器代工</span></td>
             <td class="summary">長線獲利偏低（ROE4%）體質待改善；短線動能轉強（QoQ+18% YoY+32%）。營收7575億 -16.8%｜EPS1.4 ROE4%｜負債66%適中。</td>
             <td><a href="2324_仁寶_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2344" data-name="華邦電">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+56% YoY+185%">🟠</span><span class="light blue" title="年獲利偏低｜季月轉強 QoQ+56% YoY+185%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2344_華邦電_analysis.html">2344</a></td>
             <td><a href="2344_華邦電_analysis.html">華邦電</a></td>
+            <td class="industry"><span title="半導體/記憶體">半導體/記憶體</span></td>
             <td class="summary">長線獲利偏低（ROE3%）體質待改善；短線動能轉強（QoQ+56% YoY+185%）。營收894億 +9.6%｜EPS0.9 ROE3%｜負債41%穩健。</td>
             <td><a href="2344_華邦電_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2408" data-name="南亞科">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+68% YoY+684%">🟠</span><span class="light blue" title="年獲利偏低｜季月轉強 QoQ+68% YoY+684%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2408_南亞科_analysis.html">2408</a></td>
             <td><a href="2408_南亞科_analysis.html">南亞科</a></td>
+            <td class="industry"><span title="半導體/DRAM">半導體/DRAM</span></td>
             <td class="summary">長線獲利偏低（ROE4%）體質待改善；短線動能轉強（QoQ+68% YoY+684%）。營收666億 +95.1%｜EPS2.1 ROE4%｜負債18%穩健。</td>
             <td><a href="2408_南亞科_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2421" data-name="建準">
             <td class="light-cell"><span class="light green" title="年良好｜季月震盪 YoY+16%">🟢</span><span class="light yellow" title="年良好｜季月震盪 YoY+16%" style="margin-left:4px;">🟡</span></td>
             <td><a href="2421_建準_analysis.html">2421</a></td>
             <td><a href="2421_建準_analysis.html">建準</a></td>
+            <td class="industry"><span title="電子零組件/散熱風扇">電子零組件/散熱風扇</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能震盪（YoY+16%）。營收187億 +27.7%｜EPS7.9 ROE24%｜負債49%穩健。</td>
             <td><a href="2421_建準_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2426" data-name="鼎元">
             <td class="light-cell"><span class="light red" title="年虧損｜季月轉強 QoQ+27% 月均+7%">🔴</span><span class="light blue" title="年虧損｜季月轉強 QoQ+27% 月均+7%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2426_鼎元_analysis.html">2426</a></td>
             <td><a href="2426_鼎元_analysis.html">鼎元</a></td>
+            <td class="industry"><span title="電子零組件/石英元件">電子零組件/石英元件</span></td>
             <td class="summary">長線虧損，體質承壓；短線動能轉強（QoQ+27% 月均+7%）。營收23億 -2.4%｜EPS-0.3 ROE-2%｜負債19%穩健。</td>
             <td><a href="2426_鼎元_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2467" data-name="志聖">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+23% YoY+84%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+23% YoY+84%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2467_志聖_analysis.html">2467</a></td>
             <td><a href="2467_志聖_analysis.html">志聖</a></td>
+            <td class="industry"><span title="電子零組件/PCB設備">電子零組件/PCB設備</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+23% YoY+84%）。營收61億 +26.6%｜EPS5.5 ROE12%｜負債54%穩健。</td>
             <td><a href="2467_志聖_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2481" data-name="強茂">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+16% YoY+16%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+16% YoY+16%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2481_強茂_analysis.html">2481</a></td>
             <td><a href="2481_強茂_analysis.html">強茂</a></td>
+            <td class="industry"><span title="半導體/功率元件・二極體">半導體/功率元件・二極體</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+16% YoY+16%）。營收131億 +4.4%｜EPS3.1 ROE7%｜負債45%穩健。</td>
             <td><a href="2481_強茂_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2484" data-name="希華">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+17%">🟠</span><span class="light green" title="年獲利偏低｜季月轉強 QoQ+17%" style="margin-left:4px;">🟢</span></td>
             <td><a href="2484_希華_analysis.html">2484</a></td>
             <td><a href="2484_希華_analysis.html">希華</a></td>
+            <td class="industry"><span title="電子零組件/石英元件">電子零組件/石英元件</span></td>
             <td class="summary">長線獲利偏低（ROE3%）體質待改善；短線動能轉強（QoQ+17%）。營收24億 +10.1%｜EPS0.7 ROE3%｜負債19%穩健。</td>
             <td><a href="2484_希華_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2540" data-name="愛山林">
+            <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+17% YoY-56%">🟠</span><span class="light green" title="年獲利偏低｜季月轉強 QoQ+17% YoY-56%" style="margin-left:4px;">🟢</span></td>
+            <td><a href="2540_愛山林_analysis.html">2540</a></td>
+            <td><a href="2540_愛山林_analysis.html">愛山林</a></td>
+            <td class="industry"><span title="營建/代銷・建設">營建/代銷・建設</span></td>
+            <td class="summary">長線獲利偏低（ROE4%）體質待改善；短線動能轉強（QoQ+17% YoY-56%）。營收113億 +1.3%｜EPS0.97 驟降 ROE3.9%｜負債73%偏高。</td>
+            <td><a href="2540_愛山林_analysis.html" class="btn">查看分析</a></td>
+        </tr>
+        <tr data-code="2546" data-name="根基">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+63% YoY+31%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+63% YoY+31%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2546_根基_analysis.html">2546</a></td>
             <td><a href="2546_根基_analysis.html">根基</a></td>
+            <td class="industry"><span title="營建/營造">營建/營造</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+63% YoY+31%）。營收215億 +51.0%｜EPS9.7 ROE21%｜負債60%適中。</td>
             <td><a href="2546_根基_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2603" data-name="長榮">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+22% YoY+22%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+22% YoY+22%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2603_長榮_analysis.html">2603</a></td>
             <td><a href="2603_長榮_analysis.html">長榮</a></td>
+            <td class="industry"><span title="航運業/貨櫃航運龍頭">航運業/貨櫃航運龍頭</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+22% YoY+22%）。營收3791億 -18.2%｜EPS31.7 ROE12%｜負債34%穩健。</td>
             <td><a href="2603_長榮_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2634" data-name="漢翔">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+21% YoY+13%">🟠</span><span class="light blue" title="年獲利偏低｜季月轉強 QoQ+21% YoY+13%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2634_漢翔_analysis.html">2634</a></td>
             <td><a href="2634_漢翔_analysis.html">漢翔</a></td>
+            <td class="industry"><span title="航太/國防・民航">航太/國防・民航</span></td>
             <td class="summary">長線獲利偏低（ROE4%）體質待改善；短線動能轉強（QoQ+21% YoY+13%）。營收355億 -9.9%｜EPS0.8 ROE4%｜負債67%適中。</td>
             <td><a href="2634_漢翔_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2645" data-name="長榮航太">
             <td class="light-cell"><span class="light green" title="年良好｜季月震盪 YoY+12%">🟢</span><span class="light yellow" title="年良好｜季月震盪 YoY+12%" style="margin-left:4px;">🟡</span></td>
             <td><a href="2645_長榮航太_analysis.html">2645</a></td>
             <td><a href="2645_長榮航太_analysis.html">長榮航太</a></td>
+            <td class="industry"><span title="航太/飛機維修">航太/飛機維修</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能震盪（YoY+12%）。營收182億 +11.6%｜EPS5.5 ROE15%｜負債42%穩健。</td>
             <td><a href="2645_長榮航太_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="2890" data-name="永豐金">
             <td class="light-cell"><span class="light red" title="年負債93%偏高｜季月轉強 QoQ+11% YoY+72%">🔴</span><span class="light blue" title="年負債93%偏高｜季月轉強 QoQ+11% YoY+72%" style="margin-left:4px;">🔵</span></td>
             <td><a href="2890_永豐金_analysis.html">2890</a></td>
             <td><a href="2890_永豐金_analysis.html">永豐金</a></td>
+            <td class="industry"><span title="金融/金控">金融/金控</span></td>
             <td class="summary">長線負債93%偏高，體質承壓；短線動能轉強（QoQ+11% YoY+72%）。營收744億 +15.5%｜EPS2.0 ROE10%｜負債93%偏高承壓。</td>
             <td><a href="2890_永豐金_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3005" data-name="神基">
             <td class="light-cell"><span class="light green" title="年良好｜季月轉強 QoQ+24% YoY+17%">🟢</span><span class="light blue" title="年良好｜季月轉強 QoQ+24% YoY+17%" style="margin-left:4px;">🔵</span></td>
             <td><a href="3005_神基_analysis.html">3005</a></td>
             <td><a href="3005_神基_analysis.html">神基</a></td>
+            <td class="industry"><span title="電腦及週邊/強固電腦龍頭">電腦及週邊/強固電腦龍頭</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能轉強（QoQ+24% YoY+17%）。營收394億 +10.6%｜EPS8.4 ROE18%｜負債42%穩健。</td>
             <td><a href="3005_神基_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3006" data-name="晶豪科">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+92% YoY+324%">🟠</span><span class="light blue" title="年獲利偏低｜季月轉強 QoQ+92% YoY+324%" style="margin-left:4px;">🔵</span></td>
             <td><a href="3006_晶豪科_analysis.html">3006</a></td>
             <td><a href="3006_晶豪科_analysis.html">晶豪科</a></td>
+            <td class="industry"><span title="半導體/利基型記憶體IC">半導體/利基型記憶體IC</span></td>
             <td class="summary">長線獲利偏低（ROE2%）體質待改善；短線動能轉強（QoQ+92% YoY+324%）。營收146億 +8.1%｜EPS0.9 ROE2%｜負債39%穩健。</td>
             <td><a href="3006_晶豪科_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3008" data-name="大立光">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月震盪 QoQ-12% YoY+17%">🟡</span><span class="light yellow" title="年中性｜季月震盪 QoQ-12% YoY+17%" style="margin-left:4px;">🟡</span></td>
             <td><a href="3008_大立光_analysis.html">3008</a></td>
             <td><a href="3008_大立光_analysis.html">大立光</a></td>
+            <td class="industry"><span title="光電業/光學鏡頭龍頭">光電業/光學鏡頭龍頭</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能震盪（QoQ-12% YoY+17%）。營收611億 +2.8%｜EPS159.4 ROE11%｜負債14%穩健。</td>
             <td><a href="3008_大立光_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3030" data-name="德律">
             <td class="light-cell"><span class="light blue" title="年優異｜季月震盪 YoY+24%">🔵</span><span class="light yellow" title="年優異｜季月震盪 YoY+24%" style="margin-left:4px;">🟡</span></td>
             <td><a href="3030_德律_analysis.html">3030</a></td>
             <td><a href="3030_德律_analysis.html">德律</a></td>
+            <td class="industry"><span title="其他電子/自動光學檢測(AOI)">其他電子/自動光學檢測(AOI)</span></td>
             <td class="summary">長線體質優異，獲利與負債皆健康；短線動能震盪（YoY+24%）。營收85億 +33.2%｜EPS10.5 ROE26%｜負債21%穩健。</td>
             <td><a href="3030_德律_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3037" data-name="欣興">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+15% YoY+32%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+15% YoY+32%" style="margin-left:4px;">🔵</span></td>
             <td><a href="3037_欣興_analysis.html">3037</a></td>
             <td><a href="3037_欣興_analysis.html">欣興</a></td>
+            <td class="industry"><span title="電子零組件/ABF載板龍頭">電子零組件/ABF載板龍頭</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+15% YoY+32%）。營收1312億 +13.8%｜EPS4.4 ROE6%｜負債58%穩健。</td>
             <td><a href="3037_欣興_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3231" data-name="緯創">
             <td class="light-cell"><span class="light red" title="年負債77%偏高｜季月轉強 QoQ+6% YoY+62%">🔴</span><span class="light green" title="年負債77%偏高｜季月轉強 QoQ+6% YoY+62%" style="margin-left:4px;">🟢</span></td>
             <td><a href="3231_緯創_analysis.html">3231</a></td>
             <td><a href="3231_緯創_analysis.html">緯創</a></td>
+            <td class="industry"><span title="電腦及週邊/伺服器・筆電代工">電腦及週邊/伺服器・筆電代工</span></td>
             <td class="summary">長線負債77%偏高，體質承壓；短線動能轉強（QoQ+6% YoY+62%）。營收21865億 +108.4%｜EPS9.0 ROE11%｜負債77%偏高承壓。</td>
             <td><a href="3231_緯創_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3293" data-name="鈊象">
             <td class="light-cell"><span class="light blue" title="年優異｜季月震盪 YoY+15%">🔵</span><span class="light yellow" title="年優異｜季月震盪 YoY+15%" style="margin-left:4px;">🟡</span></td>
             <td><a href="3293_鈊象_analysis.html">3293</a></td>
             <td><a href="3293_鈊象_analysis.html">鈊象</a></td>
+            <td class="industry"><span title="文化創意/遊戲・商用機台">文化創意/遊戲・商用機台</span></td>
             <td class="summary">長線體質優異，獲利與負債皆健康；短線動能震盪（YoY+15%）。營收220億 +19.0%｜EPS38.5 ROE57%｜負債25%穩健。</td>
             <td><a href="3293_鈊象_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3305" data-name="昇貿">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+11% YoY+68%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+11% YoY+68%" style="margin-left:4px;">🔵</span></td>
             <td><a href="3305_昇貿_analysis.html">3305</a></td>
             <td><a href="3305_昇貿_analysis.html">昇貿</a></td>
+            <td class="industry"><span title="電子零組件/銲錫材料">電子零組件/銲錫材料</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+11% YoY+68%）。營收106億 +29.4%｜EPS3.2 ROE7%｜負債55%穩健。</td>
             <td><a href="3305_昇貿_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3376" data-name="新日興">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月震盪 QoQ+12% YoY-10%">🟠</span><span class="light yellow" title="年獲利偏低｜季月震盪 QoQ+12% YoY-10%" style="margin-left:4px;">🟡</span></td>
             <td><a href="3376_新日興_analysis.html">3376</a></td>
             <td><a href="3376_新日興_analysis.html">新日興</a></td>
+            <td class="industry"><span title="電子零組件/軸承・摺疊軸承">電子零組件/軸承・摺疊軸承</span></td>
             <td class="summary">長線獲利偏低（ROE2%）體質待改善；短線動能震盪（QoQ+12% YoY-10%）。營收107億 -19.5%｜EPS1.7 ROE2%｜負債23%穩健。</td>
             <td><a href="3376_新日興_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3413" data-name="京鼎">
             <td class="light-cell"><span class="light green" title="年良好｜季月轉強 YoY+21% 月均+6%">🟢</span><span class="light green" title="年良好｜季月轉強 YoY+21% 月均+6%" style="margin-left:4px;">🟢</span></td>
             <td><a href="3413_京鼎_analysis.html">3413</a></td>
             <td><a href="3413_京鼎_analysis.html">京鼎</a></td>
+            <td class="industry"><span title="半導體/半導體設備">半導體/半導體設備</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能轉強（YoY+21% 月均+6%）。營收208億 +26.7%｜EPS21.4 ROE13%｜負債36%穩健。</td>
             <td><a href="3413_京鼎_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3481" data-name="群創">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月震盪 YoY+13%">🟠</span><span class="light yellow" title="年獲利偏低｜季月震盪 YoY+13%" style="margin-left:4px;">🟡</span></td>
             <td><a href="3481_群創_analysis.html">3481</a></td>
             <td><a href="3481_群創_analysis.html">群創</a></td>
+            <td class="industry"><span title="光電業/面板">光電業/面板</span></td>
             <td class="summary">長線獲利偏低（ROE0%）體質待改善；短線動能震盪（YoY+13%）。營收2267億 +4.7%｜EPS0.0 ROE0%｜負債42%穩健。</td>
             <td><a href="3481_群創_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3515" data-name="華擎">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉弱 QoQ-24% YoY-16%">🟡</span><span class="light orange" title="年中性｜季月轉弱 QoQ-24% YoY-16%" style="margin-left:4px;">🟠</span></td>
             <td><a href="3515_華擎_analysis.html">3515</a></td>
             <td><a href="3515_華擎_analysis.html">華擎</a></td>
+            <td class="industry"><span title="電腦及週邊/主機板・伺服器">電腦及週邊/主機板・伺服器</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉弱（QoQ-24% YoY-16%）。營收478億 +86.5%｜EPS15.3 ROE13%｜負債44%穩健。</td>
             <td><a href="3515_華擎_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3555" data-name="博士旺">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月震盪 QoQ-35% YoY+478%">🟡</span><span class="light yellow" title="年中性｜季月震盪 QoQ-35% YoY+478%" style="margin-left:4px;">🟡</span></td>
             <td><a href="3555_博士旺_analysis.html">3555</a></td>
             <td><a href="3555_博士旺_analysis.html">博士旺</a></td>
+            <td class="industry"><span title="電子零組件/連接器">電子零組件/連接器</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能震盪（QoQ-35% YoY+478%）。營收3億 +334.6%｜EPS1.2 ROE8%｜負債13%穩健。</td>
             <td><a href="3555_博士旺_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3605" data-name="宏致">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+19% YoY+20%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+19% YoY+20%" style="margin-left:4px;">🔵</span></td>
             <td><a href="3605_宏致_analysis.html">3605</a></td>
             <td><a href="3605_宏致_analysis.html">宏致</a></td>
+            <td class="industry"><span title="電子零組件/連接器">電子零組件/連接器</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+19% YoY+20%）。營收109億 +11.1%｜EPS4.3 ROE8%｜負債47%穩健。</td>
             <td><a href="3605_宏致_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="3673" data-name="TPK-KY">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月震盪 QoQ+8%">🟠</span><span class="light yellow" title="年獲利偏低｜季月震盪 QoQ+8%" style="margin-left:4px;">🟡</span></td>
             <td><a href="3673_TPK-KY_analysis.html">3673</a></td>
             <td><a href="3673_TPK-KY_analysis.html">TPK-KY</a></td>
+            <td class="industry"><span title="光電業/觸控面板">光電業/觸控面板</span></td>
             <td class="summary">長線獲利偏低（ROE3%）體質待改善；短線動能震盪（QoQ+8%）。營收628億 -8.8%｜EPS2.7 ROE3%｜負債53%穩健。</td>
             <td><a href="3673_TPK-KY_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="4571" data-name="鈞興-KY">
+            <td class="light-cell"><span class="light green" title="年良好｜季月震盪 月均+14%">🟢</span><span class="light yellow" title="年良好｜季月震盪 月均+14%" style="margin-left:4px;">🟡</span></td>
+            <td><a href="4571_鈞興-KY_analysis.html">4571</a></td>
+            <td><a href="4571_鈞興-KY_analysis.html">鈞興-KY</a></td>
+            <td class="industry"><span title="電機機械/自行車變速器">電機機械/自行車變速器</span></td>
+            <td class="summary">長線體質良好，獲利穩健；短線動能震盪（月均+14%）。營收31億 +0.1%｜EPS9.6 ROE16%｜負債21%穩健。</td>
+            <td><a href="4571_鈞興-KY_analysis.html" class="btn">查看分析</a></td>
+        </tr>
+        <tr data-code="4721" data-name="美琪瑪">
             <td class="light-cell"><span class="light green" title="年良好｜季月震盪 QoQ+7% YoY-17%">🟢</span><span class="light yellow" title="年良好｜季月震盪 QoQ+7% YoY-17%" style="margin-left:4px;">🟡</span></td>
             <td><a href="4721_美琪瑪_analysis.html">4721</a></td>
             <td><a href="4721_美琪瑪_analysis.html">美琪瑪</a></td>
+            <td class="industry"><span title="化學工業/特用化學">化學工業/特用化學</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能震盪（QoQ+7% YoY-17%）。營收25億 +19.3%｜EPS3.0 ROE17%｜負債39%穩健。</td>
             <td><a href="4721_美琪瑪_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="4903" data-name="聯光通">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 YoY+18% 月均+17%">🟡</span><span class="light green" title="年中性｜季月轉強 YoY+18% 月均+17%" style="margin-left:4px;">🟢</span></td>
             <td><a href="4903_聯光通_analysis.html">4903</a></td>
             <td><a href="4903_聯光通_analysis.html">聯光通</a></td>
+            <td class="industry"><span title="通信網路/光通訊">通信網路/光通訊</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（YoY+18% 月均+17%）。營收14億 +64.5%｜EPS1.0 ROE9%｜負債34%穩健。</td>
             <td><a href="4903_聯光通_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="4971" data-name="IET-KY">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉弱 QoQ-23%">🟠</span><span class="light orange" title="年獲利偏低｜季月轉弱 QoQ-23%" style="margin-left:4px;">🟠</span></td>
             <td><a href="4971_IET-KY_analysis.html">4971</a></td>
             <td><a href="4971_IET-KY_analysis.html">IET-KY</a></td>
+            <td class="industry"><span title="電子工業/功率放大器">電子工業/功率放大器</span></td>
             <td class="summary">長線獲利偏低（ROE3%）體質待改善；短線動能轉弱（QoQ-23%）。營收11億 +50.5%｜EPS1.6 ROE3%｜負債6%穩健。</td>
             <td><a href="4971_IET-KY_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="5243" data-name="乙盛-KY">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月震盪 月均+7%">🟡</span><span class="light yellow" title="年中性｜季月震盪 月均+7%" style="margin-left:4px;">🟡</span></td>
             <td><a href="5243_乙盛-KY_analysis.html">5243</a></td>
             <td><a href="5243_乙盛-KY_analysis.html">乙盛-KY</a></td>
+            <td class="industry"><span title="電子零組件/金屬機構件">電子零組件/金屬機構件</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能震盪（月均+7%）。營收121億 -7.7%｜EPS4.4 ROE9%｜負債40%穩健。</td>
             <td><a href="5243_乙盛-KY_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="5386" data-name="青雲">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月震盪 QoQ-24% YoY+423%">🟡</span><span class="light yellow" title="年中性｜季月震盪 QoQ-24% YoY+423%" style="margin-left:4px;">🟡</span></td>
             <td><a href="5386_青雲_analysis.html">5386</a></td>
             <td><a href="5386_青雲_analysis.html">青雲</a></td>
+            <td class="industry"><span title="電子零組件/顯示卡">電子零組件/顯示卡</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能震盪（QoQ-24% YoY+423%）。營收59億 +32.6%｜EPS8.8 ROE33%｜負債75%偏高。</td>
             <td><a href="5386_青雲_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="5388" data-name="中磊">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+24% YoY+69%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+24% YoY+69%" style="margin-left:4px;">🔵</span></td>
             <td><a href="5388_中磊_analysis.html">5388</a></td>
             <td><a href="5388_中磊_analysis.html">中磊</a></td>
+            <td class="industry"><span title="通信網路/網通設備">通信網路/網通設備</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+24% YoY+69%）。營收540億 -4.9%｜EPS4.0 ROE8%｜負債67%適中。</td>
             <td><a href="5388_中磊_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="5425" data-name="台半">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+16%">🟠</span><span class="light green" title="年獲利偏低｜季月轉強 QoQ+16%" style="margin-left:4px;">🟢</span></td>
             <td><a href="5425_台半_analysis.html">5425</a></td>
             <td><a href="5425_台半_analysis.html">台半</a></td>
+            <td class="industry"><span title="半導體/功率元件">半導體/功率元件</span></td>
             <td class="summary">長線獲利偏低（ROE5%）體質待改善；短線動能轉強（QoQ+16%）。營收180億 +21.1%｜EPS2.1 ROE5%｜負債48%穩健。</td>
             <td><a href="5425_台半_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="5443" data-name="均豪">
             <td class="light-cell"><span class="light orange" title="年流動103%偏低｜季月轉強 QoQ+11% YoY-13%">🟠</span><span class="light green" title="年流動103%偏低｜季月轉強 QoQ+11% YoY-13%" style="margin-left:4px;">🟢</span></td>
             <td><a href="5443_均豪_analysis.html">5443</a></td>
             <td><a href="5443_均豪_analysis.html">均豪</a></td>
+            <td class="industry"><span title="電子工業/均熱片・散熱">電子工業/均熱片・散熱</span></td>
             <td class="summary">長線流動103%偏低，體質承壓；短線動能轉強（QoQ+11% YoY-13%）。營收47億 +5.3%｜EPS2.6 ROE4%｜負債41%穩健。</td>
             <td><a href="5443_均豪_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="5904" data-name="寶雅">
             <td class="light-cell"><span class="light green" title="年良好｜季月震盪 YoY+15%">🟢</span><span class="light yellow" title="年良好｜季月震盪 YoY+15%" style="margin-left:4px;">🟡</span></td>
             <td><a href="5904_寶雅_analysis.html">5904</a></td>
             <td><a href="5904_寶雅_analysis.html">寶雅</a></td>
+            <td class="industry"><span title="零售通路/生活百貨">零售通路/生活百貨</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能震盪（YoY+15%）。營收253億 +7.2%｜EPS29.6 ROE39% 毛利率45%｜負債74%適中。</td>
             <td><a href="5904_寶雅_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="6147" data-name="頎邦">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 QoQ+15% YoY+23%">🟡</span><span class="light blue" title="年中性｜季月轉強 QoQ+15% YoY+23%" style="margin-left:4px;">🔵</span></td>
             <td><a href="6147_頎邦_analysis.html">6147</a></td>
             <td><a href="6147_頎邦_analysis.html">頎邦</a></td>
+            <td class="industry"><span title="半導體/IC載板">半導體/IC載板</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（QoQ+15% YoY+23%）。營收215億 +5.5%｜EPS3.7 ROE6%｜負債13%穩健。</td>
             <td><a href="6147_頎邦_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="6182" data-name="合晶">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+9%">🟠</span><span class="light green" title="年獲利偏低｜季月轉強 QoQ+9%" style="margin-left:4px;">🟢</span></td>
             <td><a href="6182_合晶_analysis.html">6182</a></td>
             <td><a href="6182_合晶_analysis.html">合晶</a></td>
+            <td class="industry"><span title="半導體/矽晶圓">半導體/矽晶圓</span></td>
             <td class="summary">長線獲利偏低（ROE0%）體質待改善；短線動能轉強（QoQ+9%）。營收98億 +12.6%｜EPS0.1 ROE0%｜負債34%穩健。</td>
             <td><a href="6182_合晶_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="6197" data-name="佳必琪">
             <td class="light-cell"><span class="light blue" title="年優異｜季月震盪 YoY+29%">🔵</span><span class="light yellow" title="年優異｜季月震盪 YoY+29%" style="margin-left:4px;">🟡</span></td>
             <td><a href="6197_佳必琪_analysis.html">6197</a></td>
             <td><a href="6197_佳必琪_analysis.html">佳必琪</a></td>
+            <td class="industry"><span title="電子零組件/連接器">電子零組件/連接器</span></td>
             <td class="summary">長線體質優異，獲利與負債皆健康；短線動能震盪（YoY+29%）。營收76億 +12.0%｜EPS8.7 ROE20%｜負債39%穩健。</td>
             <td><a href="6197_佳必琪_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="6226" data-name="光鼎">
             <td class="light-cell"><span class="light red" title="年虧損｜季月轉強 QoQ+15% YoY+13%">🔴</span><span class="light blue" title="年虧損｜季月轉強 QoQ+15% YoY+13%" style="margin-left:4px;">🔵</span></td>
             <td><a href="6226_光鼎_analysis.html">6226</a></td>
             <td><a href="6226_光鼎_analysis.html">光鼎</a></td>
+            <td class="industry"><span title="電子工業/光耦合器">電子工業/光耦合器</span></td>
             <td class="summary">長線虧損，體質承壓；短線動能轉強（QoQ+15% YoY+13%）。營收6億 -7.1%｜EPS-0.3 ROE-3%｜負債43%穩健。</td>
             <td><a href="6226_光鼎_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="6640" data-name="均華">
             <td class="light-cell"><span class="light green" title="年良好｜季月轉強 YoY+11% 月均+59%">🟢</span><span class="light green" title="年良好｜季月轉強 YoY+11% 月均+59%" style="margin-left:4px;">🟢</span></td>
             <td><a href="6640_均華_analysis.html">6640</a></td>
             <td><a href="6640_均華_analysis.html">均華</a></td>
+            <td class="industry"><span title="半導體/半導體設備">半導體/半導體設備</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能轉強（YoY+11% 月均+59%）。營收27億 +10.2%｜EPS12.8 ROE15%｜負債52%穩健。</td>
             <td><a href="6640_均華_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="6669" data-name="緯穎">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 YoY+26% 月均+13%">🟡</span><span class="light green" title="年中性｜季月轉強 YoY+26% 月均+13%" style="margin-left:4px;">🟢</span></td>
             <td><a href="6669_緯穎_analysis.html">6669</a></td>
             <td><a href="6669_緯穎_analysis.html">緯穎</a></td>
+            <td class="industry"><span title="半導體/AI伺服器代工">半導體/AI伺服器代工</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（YoY+26% 月均+13%）。營收9507億 +163.7%｜EPS275.1 ROE41%｜負債63%適中。</td>
             <td><a href="6669_緯穎_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="6757" data-name="台灣虎航">
             <td class="light-cell"><span class="light orange" title="年流動120%偏低｜季月震盪 QoQ-14% YoY+25%">🟠</span><span class="light yellow" title="年流動120%偏低｜季月震盪 QoQ-14% YoY+25%" style="margin-left:4px;">🟡</span></td>
             <td><a href="6757_台灣虎航_analysis.html">6757</a></td>
             <td><a href="6757_台灣虎航_analysis.html">台灣虎航</a></td>
+            <td class="industry"><span title="觀光餐旅/低成本航空">觀光餐旅/低成本航空</span></td>
             <td class="summary">長線流動120%偏低，體質承壓；短線動能震盪（QoQ-14% YoY+25%）。營收169億 +2.9%｜EPS5.4 ROE34%｜負債72%偏高。</td>
             <td><a href="6757_台灣虎航_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="6770" data-name="力積電">
             <td class="light-cell"><span class="light red" title="年虧損｜季月轉強 YoY+53% 月均+10%">🔴</span><span class="light green" title="年虧損｜季月轉強 YoY+53% 月均+10%" style="margin-left:4px;">🟢</span></td>
             <td><a href="6770_力積電_analysis.html">6770</a></td>
             <td><a href="6770_力積電_analysis.html">力積電</a></td>
+            <td class="industry"><span title="半導體/晶圓代工">半導體/晶圓代工</span></td>
             <td class="summary">長線虧損，體質承壓；短線動能轉強（YoY+53% 月均+10%）。營收467億 +4.5%｜EPS-1.9 ROE-10%｜負債54%穩健。</td>
             <td><a href="6770_力積電_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="6782" data-name="視陽">
             <td class="light-cell"><span class="light blue" title="年優異｜季月轉強 YoY+18% 月均+8%">🔵</span><span class="light green" title="年優異｜季月轉強 YoY+18% 月均+8%" style="margin-left:4px;">🟢</span></td>
             <td><a href="6782_視陽_analysis.html">6782</a></td>
             <td><a href="6782_視陽_analysis.html">視陽</a></td>
+            <td class="industry"><span title="生技醫療/隱形眼鏡">生技醫療/隱形眼鏡</span></td>
             <td class="summary">長線體質優異，獲利與負債皆健康；短線動能轉強（YoY+18% 月均+8%）。營收42億 +15.0%｜EPS14.1 ROE20%｜負債26%穩健。</td>
             <td><a href="6782_視陽_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="6890" data-name="來億-KY">
             <td class="light-cell"><span class="light green" title="年良好｜季月震盪 QoQ+53% 月均-9%">🟢</span><span class="light yellow" title="年良好｜季月震盪 QoQ+53% 月均-9%" style="margin-left:4px;">🟡</span></td>
             <td><a href="6890_來億-KY_analysis.html">6890</a></td>
             <td><a href="6890_來億-KY_analysis.html">來億-KY</a></td>
+            <td class="industry"><span title="其他/來億鞋材">其他/來億鞋材</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能震盪（QoQ+53% 月均-9%）。營收396億 +5.1%｜EPS13.0 ROE13%｜負債30%穩健。</td>
             <td><a href="6890_來億-KY_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="7728" data-name="光焱科技">
             <td class="light-cell"><span class="light yellow" title="年中性｜季月轉強 YoY+37% 月均+28%">🟡</span><span class="light green" title="年中性｜季月轉強 YoY+37% 月均+28%" style="margin-left:4px;">🟢</span></td>
             <td><a href="7728_光焱科技_analysis.html">7728</a></td>
             <td><a href="7728_光焱科技_analysis.html">光焱科技</a></td>
+            <td class="industry"><span title="光電業/太陽能">光電業/太陽能</span></td>
             <td class="summary">長線體質中性，獲利持平；短線動能轉強（YoY+37% 月均+28%）。營收4億｜EPS5.0 ROE9%｜負債18%穩健。</td>
             <td><a href="7728_光焱科技_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="8039" data-name="台虹">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+12%">🟠</span><span class="light green" title="年獲利偏低｜季月轉強 QoQ+12%" style="margin-left:4px;">🟢</span></td>
             <td><a href="8039_台虹_analysis.html">8039</a></td>
             <td><a href="8039_台虹_analysis.html">台虹</a></td>
+            <td class="industry"><span title="電子零組件/軟板">電子零組件/軟板</span></td>
             <td class="summary">長線獲利偏低（ROE5%）體質待改善；短線動能轉強（QoQ+12%）。營收106億 +6.8%｜EPS2.1 ROE5%｜負債26%穩健。</td>
             <td><a href="8039_台虹_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="8069" data-name="元太">
             <td class="light-cell"><span class="light green" title="年良好｜季月轉強 QoQ+18%">🟢</span><span class="light green" title="年良好｜季月轉強 QoQ+18%" style="margin-left:4px;">🟢</span></td>
             <td><a href="8069_元太_analysis.html">8069</a></td>
             <td><a href="8069_元太_analysis.html">元太</a></td>
+            <td class="industry"><span title="光電業/電子紙龍頭">光電業/電子紙龍頭</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能轉強（QoQ+18%）。營收361億 +12.3%｜EPS9.1 ROE15% 毛利率54%｜負債35%穩健。</td>
             <td><a href="8069_元太_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="8150" data-name="南茂">
             <td class="light-cell"><span class="light orange" title="年獲利偏低｜季月轉強 QoQ+6% YoY+29%">🟠</span><span class="light green" title="年獲利偏低｜季月轉強 QoQ+6% YoY+29%" style="margin-left:4px;">🟢</span></td>
             <td><a href="8150_南茂_analysis.html">8150</a></td>
             <td><a href="8150_南茂_analysis.html">南茂</a></td>
+            <td class="industry"><span title="半導體/封測">半導體/封測</span></td>
             <td class="summary">長線獲利偏低（ROE2%）體質待改善；短線動能轉強（QoQ+6% YoY+29%）。營收239億 +5.5%｜EPS0.7 ROE2%｜負債47%穩健。</td>
             <td><a href="8150_南茂_analysis.html" class="btn">查看分析</a></td>
         </tr>
-        <tr>
+        <tr data-code="8358" data-name="金居">
             <td class="light-cell"><span class="light green" title="年良好｜季月震盪 YoY+40%">🟢</span><span class="light yellow" title="年良好｜季月震盪 YoY+40%" style="margin-left:4px;">🟡</span></td>
             <td><a href="8358_金居_analysis.html">8358</a></td>
             <td><a href="8358_金居_analysis.html">金居</a></td>
+            <td class="industry"><span title="電子零組件/銅箔基板">電子零組件/銅箔基板</span></td>
             <td class="summary">長線體質良好，獲利穩健；短線動能震盪（YoY+40%）。營收79億 +15.5%｜EPS4.2 ROE14%｜負債20%穩健。</td>
             <td><a href="8358_金居_analysis.html" class="btn">查看分析</a></td>
         </tr>
             </tbody>
         </table>
+        <div id="noResult" class="no-result">查無符合「<span id="noResultQuery"></span>」的標的</div>
         <div class="legend">
             <span>🔵 優異</span>
             <span>🟢 良好</span>
@@ -497,5 +601,43 @@
         </div>
         <div class="footer">資料來源：Goodinfo.tw｜分析期間：最近三年｜金額單位：億元 (NTD)｜點擊代碼/名稱查看三維儀表板</div>
     </div>
+    <script>
+    (function() {
+        const input = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('searchClear');
+        const tbody = document.getElementById('stockTbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const meta = document.getElementById('searchMeta');
+        const noResult = document.getElementById('noResult');
+        const noResultQuery = document.getElementById('noResultQuery');
+        const total = rows.length;
+        function updateMeta(visible, q) {
+            if (q) {
+                meta.innerHTML = '顯示 <b>' + visible + '</b> / ' + total + ' 檔';
+            } else {
+                meta.innerHTML = '共 <b>' + total + '</b> 檔';
+            }
+        }
+        function doFilter() {
+            const q = input.value.trim().toLowerCase();
+            let visible = 0;
+            rows.forEach(function(tr) {
+                const code = (tr.dataset.code || '').toLowerCase();
+                const name = (tr.dataset.name || '').toLowerCase();
+                const hit = !q || code.indexOf(q) !== -1 || name.indexOf(q) !== -1;
+                tr.classList.toggle('hidden', !hit);
+                if (hit) visible++;
+            });
+            updateMeta(visible, q);
+            const hasNoResult = visible === 0;
+            noResult.classList.toggle('show', hasNoResult);
+            if (hasNoResult) noResultQuery.textContent = input.value.trim();
+            clearBtn.classList.toggle('show', q.length > 0);
+        }
+        input.addEventListener('input', doFilter);
+        clearBtn.addEventListener('click', function() { input.value = ''; doFilter(); input.focus(); });
+        input.addEventListener('keydown', function(e) { if (e.key === 'Escape') { input.value = ''; doFilter(); } });
+    })();
+    </script>
 </body>
 </html>

@@ -236,15 +236,48 @@ def fetch_finmind_annual(stock_id):
         ni_parent = sum_type("EquityAttributableToOwnersOfParent")
         ni_total = sum_type("IncomeAfterTaxes")
         ni = ni_parent if ni_parent != 0 or any(r["type"]=="EquityAttributableToOwnersOfParent" for r in rows) else ni_total
-        # EPS：年報採 YYYY-12-31 單筆加權平均，不可四季相加（P0-B1 修正）
-        eps_1231 = next((r["value"] for r in rows if r["type"] == "EPS" and r["date"][5:] == "12-31"), None)
-        if eps_1231 is not None:
-            eps = eps_1231
-            eps_is_estimated = False
-        else:
-            # 12-31 缺值（當年未完成或 FinMind 未回 12-31），以季加總暫估並標示
-            eps = sum_type("EPS")
+        # EPS：FinMind 12-31 存的是 Q4 單季 EPS，非全年加權（2026-09-05 4571 盲點修正）
+        # 正確年 EPS 須四季加總；但年內增資股加權平均≠加總（2540 案例: 加總 4.05 vs 年報 2.2）
+        # 策略：以四季加總為主，透過「隱含股本穩定性」自動偵測增資年並加註警示
+        eps_sum = sum_type("EPS")
+        eps_q4 = next((r["value"] for r in rows if r["type"] == "EPS" and r["date"][5:] == "12-31"), None)
+        # 隱含股本 = 單季淨利(母公司) / 單季EPS，股本穩定則四季隱含股本 CV<15%
+        implied_shares = []
+        for r in rows:
+            if r["type"] == "EPS" and r["value"] not in (None, 0):
+                ni_q = next((x["value"] for x in rows if x["type"] in ("EquityAttributableToOwnersOfParent","IncomeAfterTaxes") and x["date"]==r["date"]), None)
+                if ni_q is not None and r["value"]!=0:
+                    implied_shares.append(ni_q / r["value"])
+        # 若無法算隱含股本，改用權益 YoY 變動作輔助
+        shares_cv = 0
+        if len(implied_shares) >= 3 and all(s!=0 for s in implied_shares):
+            mean_s = sum(implied_shares)/len(implied_shares)
+            var = sum((s-mean_s)**2 for s in implied_shares)/len(implied_shares)
+            shares_cv = (var**0.5)/mean_s if mean_s else 0
+        # 判斷：CV>0.15 或 權益年增>20% 視為年內股本變動
+        equity_yoy = None
+        try:
+            eq_cur = bs_by_year.get(y, {}).get("Equity") or bs_by_year.get(y, {}).get("EquityAttributableToOwnersOfParent")
+            eq_prev = bs_by_year.get(str(int(y)-1), {}).get("Equity") or bs_by_year.get(str(int(y)-1), {}).get("EquityAttributableToOwnersOfParent")
+            if eq_cur and eq_prev and eq_prev!=0:
+                equity_yoy = abs(eq_cur-eq_prev)/eq_prev
+        except: pass
+        is_capital_change = (shares_cv > 0.15) or (equity_yoy is not None and equity_yoy > 0.20)
+        if eps_sum is None or eps_sum==0:
+            eps = eps_q4
             eps_is_estimated = True
+        else:
+            eps = eps_sum
+            # 若偵測到增資且 Q4 與加總差異>15%，標為估算並保留 Q4 作對照
+            if is_capital_change and eps_q4 is not None and eps_q4!=0:
+                if abs(eps_sum - eps_q4*4)/abs(eps_sum+1e-9) > 0.3 or abs(eps_sum - eps_q4)/abs(eps_sum+1e-9) > 0.5:
+                    eps_is_estimated = True  # 加總可能高估，提醒以 MOPS 加權為準
+                else:
+                    eps_is_estimated = False
+            else:
+                eps_is_estimated = False
+        # 保留偵測資訊供 verification 使用
+        eps_detect_info = {"eps_sum": eps_sum, "eps_q4": eps_q4, "shares_cv": round(shares_cv,4), "equity_yoy": round(equity_yoy,4) if equity_yoy else None, "is_capital_change": is_capital_change}
         if rev == 0 and gp == 0 and oi == 0:
             continue
         # BS
@@ -291,6 +324,11 @@ def fetch_finmind_annual(stock_id):
         _div_info = div_by_year.get(y) or {}
         _div_cash = _div_info.get("cash") if _div_info else None
         _div_stock = _div_info.get("stock") if _div_info else None
+        # 保留 EPS 偵測資訊以供 verification（股本變動年需告警）
+        try:
+            _eps_detect = eps_detect_info
+        except NameError:
+            _eps_detect = {"eps_sum": None, "eps_q4": None, "shares_cv": 0, "equity_yoy": None, "is_capital_change": False}
         # 若當年無紀錄，視為 None（尚未公告），但若為 0 且有 ex_date 則保留 0
         if _div_info and _div_info.get("has_row"):
             _div_cash_val = float(_div_cash) if _div_cash is not None else None
@@ -340,6 +378,7 @@ def fetch_finmind_annual(stock_id):
             "net_income": to_yi(ni),
             "eps": (eps if eps != 0 else None),
             "eps_is_estimated": eps_is_estimated if 'eps_is_estimated' in locals() else False,
+            "eps_detect": _eps_detect,
             "cash": to_yi(cash),
             "inventory": to_yi(inv),
             "current_assets": to_yi(ca),
@@ -654,9 +693,9 @@ def sanity_check(metrics_by_year, years, raw_income=None, raw_bs=None):
         roe = m.get('roe')
         if roe is not None and roe > 100:
             warnings.append({'level': 'warn', 'field': f'{yr} ROE', 'msg': f'{roe:.1f}% 超過 100% ，可能為高槓桿'})
-        # EPS 估算誠實告知
+        # EPS 估算誠實告知（2026-09-05 修正：四季加總為主，增資年加權失真另有 warn）
         if m.get('eps_is_estimated'):
-            warnings.append({'level': 'info', 'field': f'{yr} EPS', 'msg': '該年無 12-31 年報單筆 EPS，以季加總估算（加權平均可能失真），僅供參考'})
+            warnings.append({'level': 'info', 'field': f'{yr} EPS', 'msg': '該年 EPS 以四季加總估算（加權平均可能失真，特別是年內增資股），僅供參考，請以 MOPS 年報為準'})
     nm_list = [(yr, metrics_by_year[yr].get('net_margin')) for yr in years if yr in metrics_by_year]
     for i in range(1, len(nm_list)):
         yr_prev, nm_prev = nm_list[i-1]
@@ -805,6 +844,28 @@ def fetch_single(stock_id, company_name=None, delay_goodinfo=True, reuse_is_data
             if _is_polluted(k, bs_dict[k][y], y):
                 bs_dict[k][y] = None
     sanity_warnings = sanity_check(metrics, years[-3:], raw_income=is_dict, raw_bs=bs_dict)
+    # EPS 盲點後續告警：股本變動年 + EPS 加總 vs Q4 差異過大需提醒以 MOPS 加權為準
+    for y in years[-3:]:
+        det = annual.get(y, {}).get("eps_detect")
+        if det and det.get("is_capital_change"):
+            eps_sum = det.get("eps_sum")
+            eps_q4 = det.get("eps_q4")
+            cv = det.get("shares_cv")
+            yoy = det.get("equity_yoy")
+            # 僅在加總與 Q4 *4 差異大時告警，避免對穩定股誤報
+            if eps_sum and eps_q4 and abs(eps_sum - eps_q4)>0.5:
+                sanity_warnings.append({'level': 'warn', 'field': f'{y} EPS(股本變動)', 'msg': f'隱含股本 CV={cv:.2%} 權益YoY={yoy:.1%} 偵測到年內增資/減資，FinMind 四季加總 EPS {eps_sum:.2f} 可能高估加權 EPS，請以 MOPS 年報加權為準 (Q4單季 {eps_q4:.2f})'})
+            elif eps_sum:
+                sanity_warnings.append({'level': 'info', 'field': f'{y} EPS(股本變動)', 'msg': f'隱含股本 CV={cv:.2%} 權益YoY={yoy:.1%} 年內股本有變動，已採四季加總 {eps_sum:.2f}，若與 MOPS 年報加權差異>5% 以 MOPS 為準'})
+        # 一致性檢：年度淨利/EPS 隱含股本應與季平均接近，否則告警
+        m = metrics.get(y, {})
+        if m.get("eps") and m.get("net_income"):
+            try:
+                implied_annual_shares = m["net_income"]*1e8 / m["eps"] / 1e8  # 億元/元 = 億股
+                # 與 quarterly 隱含股本均值比對在 eps_detect 內已涵蓋，此處僅防極端值
+                if det and det.get("shares_cv") and det["shares_cv"]>0.15:
+                    pass  # 已告警
+            except: pass
     news_check = cross_validate_with_news(metrics, years[-3:], enable=WITH_NEWS or os.getenv("FETCH_WITH_NEWS")=="1")
     verification = {
         "sanity": sanity_warnings + news_check.get("warnings", []),

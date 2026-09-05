@@ -35,6 +35,62 @@ INDUSTRY = {
     "5386": "電子零組件（顯示卡通路）",
 }
 
+STOCK_PRODUCT_PATH = REPORTS / "stock_products.json"
+_STOCK_PRODUCT_CACHE = None
+_STOCK_META_CACHE_GD = None
+def _load_stock_products_gd():
+    global _STOCK_PRODUCT_CACHE
+    if _STOCK_PRODUCT_CACHE is not None:
+        return _STOCK_PRODUCT_CACHE
+    if STOCK_PRODUCT_PATH.exists():
+        try:
+            j = json.loads(STOCK_PRODUCT_PATH.read_text(encoding="utf-8"))
+            if isinstance(j, dict):
+                _STOCK_PRODUCT_CACHE = j
+                return j
+        except Exception:
+            pass
+    _STOCK_PRODUCT_CACHE = {}
+    return {}
+
+def _load_stock_meta_gd():
+    global _STOCK_META_CACHE_GD
+    if _STOCK_META_CACHE_GD is not None:
+        return _STOCK_META_CACHE_GD
+    meta_path = REPORTS / ".stock_meta.json"
+    if meta_path.exists():
+        try:
+            j = json.loads(meta_path.read_text(encoding="utf-8"))
+            if isinstance(j, dict):
+                _STOCK_META_CACHE_GD = j
+                return j
+        except Exception:
+            pass
+    _STOCK_META_CACHE_GD = {}
+    return {}
+
+def _get_industry_full(sid: str) -> str:
+    # 1) 使用者可編輯 stock_products.json 優先（已含 產業/產品）
+    prod_map = _load_stock_products_gd()
+    if sid in prod_map:
+        v = prod_map[sid]
+        if isinstance(v, str):
+            return v.strip()
+        if isinstance(v, dict):
+            ind = (v.get("industry") or "").strip()
+            prod = (v.get("product") or "").strip()
+            if ind and prod:
+                return f"{ind}/{prod}"
+            return ind or prod
+    # 2) 硬編 INDUSTRY 回落
+    if sid in INDUSTRY:
+        return INDUSTRY[sid]
+    # 3) FinMind 快取
+    meta = _load_stock_meta_gd()
+    info = meta.get(sid, {})
+    return (info.get("curated_industry") or info.get("industry") or "上市櫃公司").strip()
+
+
 # 與 8069 完全相同的 CSS + 行動裝置擴充
 CSS = """* { box-sizing: border-box; margin: 0; padding: 0; }
 html { overflow-x: hidden; max-width: 100vw; }
@@ -171,6 +227,7 @@ def wrap(cid, title, config):
 def generate(sid):
     j=json.load(open(_raw_data_path(sid), encoding="utf-8"))
     name=j.get("company", sid)
+    industry_full = _get_industry_full(sid)
     # 兼容新舊 years 排序：舊檔為降冪['2025','2024',...]，新檔為升冪['2020',...,'2026']，一律取最近三年
     years=sorted(j["years"])[-3:]
     py = years[-2] if len(years)>=2 else None  # 真實性：不足2年時不假造前一年標籤
@@ -443,7 +500,7 @@ def generate(sid):
 <div class="kpi-card {dr_cls}"><div class="kpi-label">負債比率</div><div class="kpi-value">{fmt_pct(dr_l)}</div><div class="kpi-change neutral">■ {dr_grade}</div></div>
 <div class="kpi-card {'green' if (L('op_cf') or 0)>0 else 'red'}"><div class="kpi-label">營業現金流 (億元)</div><div class="kpi-value">{fmt(L('op_cf'))}</div><div class="kpi-change neutral">■ 為淨利的 {f"{ocf_ni:.1f} 倍" if ocf_ni is not None else "—"}</div></div>
 <div class="kpi-card {'green' if (L('fcf') or 0)>0 else 'red'}"><div class="kpi-label">自由現金流 (億元)</div><div class="kpi-value">{fmt(L('fcf'))}</div><div class="kpi-change neutral">■ Capex {fmt(L('capex'))} 億</div></div>
-<div class="kpi-card purple"><div class="kpi-label">現金部位 (億元)</div><div class="kpi-value">{fmt(L('cash'))}</div><div class="kpi-change {'up' if (cash_yoy or 0)>0 else 'down'}">{'▲' if (cash_yoy or 0)>0 else '▼'} {cash_yoy:+.1f}% YoY</div></div>
+<div class="kpi-card purple"><div class="kpi-label">現金部位 (億元)</div><div class="kpi-value">{fmt(L('cash'))}</div><div class="kpi-change {'up' if (cash_yoy or 0)>0 else 'down'}">{'▲' if (cash_yoy or 0)>0 else '▼'} {f"{cash_yoy:+.1f}% YoY" if cash_yoy is not None else "—"}</div></div>
 </div>"""
     inv_yoy = yoy("inventory")
     inv_txt = f"存貨 {fmt(g('inventory')[0])} → {fmt(L('inventory'))} 億（{inv_yoy:+.1f}% YoY）" if inv_yoy is not None else f"存貨 {fmt(g('inventory')[0])} → {fmt(L('inventory'))} 億"
@@ -451,7 +508,7 @@ def generate(sid):
 <li>流動比率 {fmt_pct(g('current_ratio')[0])} → {fmt_pct(cr_l)}，{cr_grade}，短期償債能力{'良好' if cr_l and cr_l>150 else '偏弱'}</li>
 <li>負債比率 {fmt_pct(g('debt_ratio')[0])} → {fmt_pct(dr_l)}，{dr_grade}</li>
 <li>{inv_txt}，{ '週轉壓力升' if (inv_yoy or 0)>30 else '存貨控管穩定' if (inv_yoy or 0)>-10 else '存貨去化'}</li>
-<li>現金部位 {fmt(M[years[0]]['cash'])} → {fmt(L('cash'))} 億（{years[-1]}年 {cash_yoy:+.1f}%），{'財務彈性充足' if (cash_yoy or 0)>0 else '因配息／投資消化'}</li>
+<li>現金部位 {fmt(M[years[0]]['cash'])} → {fmt(L('cash'))} 億（{years[-1]}年 {f"{cash_yoy:+.1f}%" if cash_yoy is not None else "—"}），{'財務彈性充足' if (cash_yoy or 0)>0 else '因配息／投資消化'}</li>
 <li>營業現金流 {fmt(L('op_cf'))} 億，為淨利的 {f"{ocf_ni:.1f} 倍" if ocf_ni is not None else "—"}，{f"獲利含金量高" if ocf_ni and ocf_ni>0.8 else "現金轉換待改善" if ocf_ni is not None else "現金數據待補"}</li>
 </ul>"""
 
@@ -814,7 +871,7 @@ def generate(sid):
 <style>{CSS}</style>
 </head>
 <body>
-<div class="header"><div><h1>{name} ({sid}) 財務分析儀表板</h1><div class="subtitle">資料來源：FinMind 主力 + Goodinfo 費用細拆{subtitle_extra}｜分析期間：{years[0]} – {years[-1]}｜金額單位：億元 (NTD)</div></div><div class="badge">🏢 {INDUSTRY.get(sid,'上市櫃公司')}</div></div>
+<div class="header"><div><h1>{name} ({sid}) 財務分析儀表板</h1><div class="subtitle">資料來源：FinMind 主力 + Goodinfo 費用細拆{subtitle_extra}｜分析期間：{years[0]} – {years[-1]}｜金額單位：億元 (NTD)<br><span style="opacity:0.95">🏭 產業：{industry_full}</span></div></div><div class="badge">🏢 {industry_full}</div></div>
 <div class="verify-bar">{sanity_badge}<span>抓取時間：{fetched}</span><a href="{gi['income_statement']}" target="_blank">🔍 Goodinfo 原始數據</a><a href="{mops}" target="_blank">📋 MOPS 官方申報</a><a href="index.html">← 回總覽</a></div>
 {warn_html}
 <div class="tabs">{momentum_tab}<div class="tab" onclick="switchTab('ops')">📊 經營分析</div><div class="tab" onclick="switchTab('profit')">💰 獲利分析</div><div class="tab" onclick="switchTab('finance')">🏦 財務健全度</div></div>

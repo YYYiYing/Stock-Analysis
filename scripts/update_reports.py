@@ -41,6 +41,139 @@ except Exception as e:
     sys.exit(1)
 
 STATE_PATH = REPORTS / ".update_state.json"
+STOCK_META_PATH = REPORTS / ".stock_meta.json"
+STOCK_PRODUCT_PATH = REPORTS / "stock_products.json"
+_STOCK_META_CACHE = None
+_STOCK_PRODUCT_CACHE = None
+
+def _load_stock_meta():
+    """FinMind TaiwanStockInfo 批次快取（7天有效），fallback 到 fetch_hybrid.INDUSTRY_MAP"""
+    global _STOCK_META_CACHE
+    if _STOCK_META_CACHE is not None:
+        return _STOCK_META_CACHE
+    # curated map
+    try:
+        from fetch_hybrid import INDUSTRY_MAP as _CURATED
+    except Exception:
+        _CURATED = {}
+    cache = {}
+    # 1) 讀本地快取（7天內有效）
+    cache_from_file = None
+    if STOCK_META_PATH.exists():
+        try:
+            j = json.loads(STOCK_META_PATH.read_text(encoding="utf-8"))
+            age_days = (datetime.now(TPE).timestamp() - STOCK_META_PATH.stat().st_mtime) / 86400
+            if age_days < 7 and isinstance(j, dict) and j:
+                cache_from_file = j
+                cache = dict(j)  # copy 供後續 curated 合併
+        except Exception:
+            pass
+    if cache_from_file is not None:
+        # 快取命中：直接合併 curated 後回傳（省一次 FinMind API）
+        try:
+            import copy
+            cache = copy.deepcopy(cache_from_file)
+            updated = False
+            for sid, curated_ind in _CURATED.items():
+                if sid not in cache:
+                    cache[sid] = {"name": "", "industry": curated_ind}
+                    updated = True
+                elif "curated_industry" not in cache[sid]:
+                    cache[sid]["curated_industry"] = curated_ind
+                    updated = True
+            if updated:
+                try:
+                    STOCK_META_PATH.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        _STOCK_META_CACHE = cache
+        return cache
+    # 2) 嘗試 FinMind 批次抓取（單次 API，取得全部 3k+ 檔的 industry_category + stock_name）
+    try:
+        import requests
+        token = os.getenv("FINMIND_TOKEN", "")
+        if not token:
+            try:
+                cfg = Path.home() / ".config" / "opencode" / "opencode.jsonc"
+                if cfg.exists():
+                    token = json.loads(cfg.read_text(encoding="utf-8")).get("mcp", {}).get("finmind", {}).get("environment", {}).get("FINMIND_TOKEN", "") or token
+            except Exception:
+                pass
+        r = requests.get("https://api.finmindtrade.com/api/v4/data", params={"dataset": "TaiwanStockInfo", "start_date": "2026-09-01", "token": token}, timeout=15)
+        js = r.json()
+        if js.get("status") == 200:
+            for row in js.get("data", []) or []:
+                sid = row.get("stock_id")
+                if not sid:
+                    continue
+                name = (row.get("stock_name") or "").strip()
+                ind = (row.get("industry_category") or "").strip()
+                if not name and not ind:
+                    continue
+                # twse 優先覆蓋
+                if sid not in cache or row.get("type") == "twse":
+                    cache[sid] = {"name": name, "industry": ind}
+            # 寫回快取
+            try:
+                STOCK_META_PATH.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
+            except Exception:
+                pass
+    except Exception:
+        pass
+    # 3) 合併 curated（對缺漏的 sid 補齊；對已有 sid 加 curated_industry 供顯示優先）
+    try:
+        for sid, curated_ind in _CURATED.items():
+            if sid not in cache:
+                cache[sid] = {"name": "", "industry": curated_ind}
+            else:
+                cache[sid]["curated_industry"] = curated_ind
+    except Exception:
+        pass
+    _STOCK_META_CACHE = cache
+    return cache
+
+def _load_stock_products():
+    global _STOCK_PRODUCT_CACHE
+    if _STOCK_PRODUCT_CACHE is not None:
+        return _STOCK_PRODUCT_CACHE
+    if STOCK_PRODUCT_PATH.exists():
+        try:
+            j = json.loads(STOCK_PRODUCT_PATH.read_text(encoding="utf-8"))
+            if isinstance(j, dict):
+                _STOCK_PRODUCT_CACHE = j
+                return j
+        except Exception:
+            pass
+    _STOCK_PRODUCT_CACHE = {}
+    return {}
+
+def _get_industry(sid: str) -> str:
+    # 1) 使用者可編輯的 stock_products.json 優先（已含「產業/產品」）
+    prod_map = _load_stock_products()
+    if sid in prod_map:
+        v = prod_map[sid]
+        if isinstance(v, str):
+            return v.strip()
+        if isinstance(v, dict):
+            ind = (v.get("industry") or "").strip()
+            prod = (v.get("product") or "").strip()
+            if ind and prod:
+                return f"{ind}/{prod}"
+            return ind or prod
+    # 2) 回落到 FinMind / curated
+    meta = _load_stock_meta()
+    info = meta.get(sid, {})
+    return (info.get("curated_industry") or info.get("industry") or "").strip()
+
+def _get_display_company(sid: str, company: str) -> str:
+    if not company or company.strip() == sid or company.strip() == "":
+        meta = _load_stock_meta()
+        name = (meta.get(sid, {}).get("name") or "").strip()
+        if name and name != sid:
+            return name
+    return company
 
 # 季報申報截止日（用於 quarterly 模式自動判斷是否已到披露期）
 QUARTER_DEADLINES = ["03-31", "05-15", "08-14", "11-14"]
@@ -56,10 +189,15 @@ def inventory():
         sid=p.stem.split("_")[0]
         q=j.get("quarterly",[])
         m=j.get("monthly",[])
+        company_raw = j.get("company", sid)
+        company = _get_display_company(sid, company_raw)
+        industry = _get_industry(sid)
         rows.append({
             "sid": sid,
             "path": str(p),
-            "company": j.get("company", sid),
+            "company": company,
+            "company_raw": company_raw,
+            "industry": industry,
             "fetched_at": j.get("metadata",{}).get("fetched_at"),
             "years": j.get("years",[]),
             "q_last": q[-1]["date"] if q else None,
@@ -113,10 +251,12 @@ def _interactive_pick_targets(inv, title="請選擇要更新的標的"):
         choices = []
         for r in sorted(inv, key=lambda x: x["sid"]):
             comp = r.get("company", r["sid"])
+            industry = r.get("industry", "")
+            ind_suf = f" ({industry})" if industry else ""
             yrs = ",".join(r.get("years", [])[-3:]) if r.get("years") else "-"
             qlab = r.get("q_label") or r.get("q_last") or "-"
             mlab = r.get("m_last") or "-"
-            label = f"{r['sid']} {comp}  年:{yrs} 季:{qlab} 月:{mlab}"
+            label = f"{r['sid']} {comp}{ind_suf}  年:{yrs} 季:{qlab} 月:{mlab}"
             choices.append(q.Choice(title=label, value=r["sid"]))
         try:
             ans = q.checkbox(
@@ -146,7 +286,9 @@ def _interactive_pick_delete(inv, title="請選擇要刪除的報告"):
         choices = []
         for r in sorted(inv, key=lambda x: x["sid"]):
             comp = r.get("company", r["sid"])
-            label = f"{r['sid']} {comp}"
+            industry = r.get("industry", "")
+            ind_suf = f" ({industry})" if industry else ""
+            label = f"{r['sid']} {comp}{ind_suf}"
             choices.append(q.Choice(title=label, value=r["sid"]))
         try:
             ans = q.checkbox(
