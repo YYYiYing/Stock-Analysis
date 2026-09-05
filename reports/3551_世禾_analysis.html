@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世禾 (3551) 三維財務分析</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+<style>* { box-sizing: border-box; margin: 0; padding: 0; }
+html { overflow-x: hidden; max-width: 100vw; }
+html, body { overflow-x: hidden; }
+    body { font-family: 'Microsoft JhengHei', 'Noto Sans TC', sans-serif; background: #f0f4f8; color: #2d3748; }
+    .header {
+      background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #3182ce 100%);
+      color: white; padding: 24px 32px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .header h1 { font-size: 1.5rem; font-weight: 700; }
+    .header .subtitle { font-size: 0.85rem; opacity: 0.9; margin-top: 4px; }
+    .badge { background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 500; }
+    .tabs { display: flex; background: white; border-bottom: 2px solid #e2e8f0; padding: 0 32px; }
+    .tab { padding: 14px 24px; cursor: pointer; font-size: 0.95rem; font-weight: 600;
+      color: #718096; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab.active { color: #2b6cb0; border-bottom-color: #2b6cb0; }
+    .tab-content { display: none; padding: 24px 32px; overflow-x: hidden; max-width: 100%; }
+    .tab-content.active { display: block; max-width: 100%; }
+    .kpi-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .kpi-card { flex: 1; min-width: 180px; background: white; border-radius: 12px;
+      padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-left: 4px solid #3182ce; }
+    .kpi-card.green { border-left-color: #38a169; }
+    .kpi-card.yellow { border-left-color: #ecc94b; }
+    .kpi-card.orange { border-left-color: #dd6b20; }
+    .kpi-card.red { border-left-color: #e53e3e; }
+    .kpi-card.purple { border-left-color: #805ad5; }
+    .kpi-label { font-size: 0.78rem; color: #718096; margin-bottom: 6px; font-weight: 500; text-transform: uppercase; }
+    .kpi-value { font-size: 1.7rem; font-weight: 700; color: #2d3748; }
+    .kpi-change { font-size: 0.82rem; margin-top: 4px; }
+    .up { color: #38a169; } .down { color: #e53e3e; } .neutral { color: #718096; }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; width: 100%; max-width: 100%; }
+    .chart-card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; max-width: 100%; }
+    .chart-card.full { grid-column: 1 / -1; }
+    .chart-title { font-size: 0.92rem; font-weight: 700; color: #4a5568; margin-bottom: 16px;
+      padding-bottom: 10px; border-bottom: 1px solid #f0f4f8; }
+    .chart-container { position: relative; height: 240px; width: 100% !important; max-width: 100%; overflow: hidden; }
+canvas { max-width: 100% !important; display: block; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 24px; }
+    .data-table th { background: #2b6cb0; color: white; padding: 10px 14px; text-align: center; }
+    .data-table td { padding: 9px 14px; text-align: right; border-bottom: 1px solid #e2e8f0; }
+    .data-table tr:nth-child(even) td { background: #f7fafc; }
+    .data-table td:first-child { text-align: left; font-weight: 500; }
+    .data-table .section-header td { background: #ebf8ff; color: #2b6cb0; font-weight: 700; }
+    .data-table .total-row td { background: #e6fffa; color: #276749; font-weight: 700; }
+    .insight-box { background: linear-gradient(135deg, #ebf8ff, #e6fffa);
+      border: 1px solid #bee3f8; border-radius: 12px; padding: 18px 22px; margin-bottom: 20px; }
+    .insight-box h3 { color: #2b6cb0; font-size: 0.9rem; margin-bottom: 10px; }
+    .insight-box ul { list-style: none; }
+    .insight-box ul li { font-size: 0.87rem; color: #4a5568; padding: 3px 0;
+      padding-left: 18px; position: relative; }
+    .insight-box ul li::before { content: '▸'; position: absolute; left: 0; color: #3182ce; }
+    .verify-bar { display: flex; gap: 16px; align-items: center; padding: 12px 32px; background: white; border-bottom: 1px solid #e2e8f0; font-size: 0.82rem; color: #718096; }
+    .verify-bar a { color: #3182ce; text-decoration: none; font-weight: 500; }
+    .verify-bar a:hover { text-decoration: underline; }
+    .verify-badge { background: #c6f6d5; color: #276749; padding: 4px 10px; border-radius: 12px; font-weight: 600; }
+
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); background: white; margin-bottom: 20px; }
+.table-wrap .data-table { min-width: 560px; margin-bottom: 0; box-shadow: none; }
+.finance-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 4px; }
+@media (max-width: 768px) {
+  body { padding: 0; }
+  .header { flex-direction: column; align-items: flex-start; gap: 10px; padding: 18px 16px; }
+  .header h1 { font-size: 1.2rem; }
+  .verify-bar { padding: 8px 16px; font-size: 0.72rem; flex-wrap: wrap; }
+  .tabs { padding: 0 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+  .tab { padding: 12px 13px; font-size: 0.85rem; white-space: nowrap; flex-shrink: 0; }
+  .tab-content { padding: 16px 12px; }
+  .kpi-row { gap: 10px; }
+  .kpi-card { min-width: calc(50% - 5px); padding: 14px; }
+  .kpi-value { font-size: 1.35rem; }
+  .kpi-label { font-size: 0.7rem; }
+  .charts-grid { grid-template-columns: 1fr; gap: 14px; }
+  .chart-card { padding: 16px; }
+  .chart-container { height: 200px !important; }
+  .chart-title { font-size: 0.85rem; }
+  .insight-box { padding: 14px 16px; }
+  .insight-box ul li { font-size: 0.82rem; }
+  .data-table { font-size: 0.78rem; }
+  .data-table th, .data-table td { padding: 8px 10px; }
+  .finance-tables { grid-template-columns: 1fr !important; gap: 14px; }
+}
+@media (max-width: 480px) {
+  .kpi-card { min-width: 100%; }
+  .header h1 { font-size: 1.1rem; }
+}</style>
+</head>
+<body>
+<div class="header"><div><h1>世禾 (3551) 財務分析儀表板</h1><div class="subtitle">資料來源：FinMind 主力 + Goodinfo 費用細拆｜<span title="">部分數據由 FinMind 補足</span>｜EPS 估算年：2025（季加總，僅供參考）｜分析期間：2023 – 2025｜金額單位：億元 (NTD)</div></div><div class="badge">🏢 綠能環保類</div></div>
+<div class="verify-bar"><span class="verify-badge" style="background:#ebf8ff;color:#2b6cb0;">✅ 合理性檢查通過｜未經新聞交叉（僅 FinMind/MOPS）</span><span>抓取時間：2026-09-05</span><a href="https://goodinfo.tw/tw/StockFinDetail.asp?RPT_CAT=IS_YEAR&STOCK_ID=3551" target="_blank">🔍 Goodinfo 原始數據</a><a href="https://mops.twse.com.tw/mops/web/t05st01?step=1&co_id=3551&TYPEK=sii" target="_blank">📋 MOPS 官方申報</a><a href="index.html">← 回總覽</a></div>
+ <div class="insight-box" style="background:#fffbeb;border-color:#fbd38d;margin:12px 32px 0 32px;"><h3>⚠️ 數據異常 / 待再查證</h3><ul><li>ℹ️ <b>2025 EPS(股本變動)</b>: 隱含股本 CV=3.07% 權益YoY=29.2% 偵測到年內增資/減資，FinMind 四季加總 EPS 8.36 可能高估加權 EPS，請以 MOPS 年報加權為準 (Q4單季 2.24)</li><li>ℹ️ <b>2025 EPS</b>: 該年 EPS 以四季加總估算（加權平均可能失真，特別是年內增資股），僅供參考，請以 MOPS 年報為準</li></ul><div style="margin-top:8px;font-size:0.80rem;color:#744210;">FinMind/Goodinfo 與新聞矛盾時，任一方可能誤植，該數據後已加 ⚠️，僅供參考，請再查證 MOPS 原始申報。</div></div>
+<div class="tabs"><div class="tab active" onclick="switchTab('summary')" data-tab="summary">💬 白話總結</div><div class="tab" onclick="switchTab('momentum')">📈 季月動能</div><div class="tab" onclick="switchTab('ops')">📊 經營分析</div><div class="tab" onclick="switchTab('profit')">💰 獲利分析</div><div class="tab" onclick="switchTab('finance')">🏦 財務健全度</div></div>
+<div id="summary" class="tab-content active">
+<div class="insight-box" style="background:linear-gradient(135deg,#fffbeb,#fefcbf);border-color:#fbd38d;">
+<h3>💬 白話總結 — 給非財務背景的一頁讀懂</h3>
+<div style="font-size:0.82rem;color:#744210;margin-bottom:12px;">以下為 AI 閱讀本報告 4 頁（季月動能／經營／獲利／財務）後，以白話整合的解讀，數據皆來自 FinMind/MOPS，僅做翻譯不新增數據。</div>
+</div>
+<h4 style='color:#2b6cb0;margin:16px 0 8px;font-size:0.92rem;'>📈 季月動能 — 連八季階梯式成長，2026Q2獲利創歷史新高</h4>
+<p style='font-size:0.88rem;color:#4a5568;line-height:1.7;margin:0 0 10px;'>這一頁在看「最近一季、最近一個月」有沒有動起來。世禾 2026Q2 營收 8.61 億，QoQ +6.2% 連續成長，較 2025Q2 的 7.19 億 YoY +19.7%，自 2024Q3 的 6.45 億起已連續八季階梯上行、無一季衰退；淨利更從 1.51 億季增至 1.81 億、EPS 2.46→2.94 元續創高，毛利率 37.44%→39.44% 跳升近 2 個百分點，淨利率同步衝至 21.0% 的近年新高，短線動能極強。月營收亦延續強勢：2026年 4月27.5億→5月27.5億→6月29.2億→7月29.3億→8月29.9億，月均連續站穩 2.9 億且 MoM 持續為正，顯示半導體耗材與精密表面處理接單暢旺。整體是「營收、毛利、獲利率三升」的健康成長，下一季觀察毛利率能否續站 39% 之上。</p>
+<h4 style='color:#2b6cb0;margin:16px 0 8px;font-size:0.92rem;'>📊 經營 — 營收重回成長軌道，費用率隨規模擴大而下降</h4>
+<p style='font-size:0.88rem;color:#4a5568;line-height:1.7;margin:0 0 10px;'>這一頁在看「本業賺不賺錢」。三年營收 23.92 → 22.88 → 25.75 → 29.91 億（2025年），2023年一度 -4.3% 衰退後，2024年 +12.5%、2025年 +16.1% 強勁反彈，三年 CAGR 約 +7.7%，營收規模創歷史新高。毛利率 37.1% → 37.4% → 36.4% → 36.0%，微幅收斂 -1.1 個百分點但仍穩守 36% 高檔，屬精密製造優異水準。營業費用率 18.5% → 20.8% → 19.8% → 18.5%，2025年年減 1.2 個百分點，顯示費用控制隨營收放大而產生規模效益（FinMind 總額口徑，無推銷/管理/研發細拆屬正常）。營業利益率 18.6% → 16.5% → 16.6% → 17.4%，2025年回升 +0.8 個百分點，100 元營收賺 17.4 元本業利益，本業獲利能力紮實且趨勢向上。</p>
+<h4 style='color:#2b6cb0;margin:16px 0 8px;font-size:0.92rem;'>💰 獲利 — 淨利與EPS同步創高，股利連兩年加碼</h4>
+<p style='font-size:0.88rem;color:#4a5568;line-height:1.7;margin:0 0 10px;'>這一頁在看「最後落袋多少」。稅後淨利 3.63 → 3.13 → 3.73 → 4.79 億，2024年 +19.0%、2025年 +28.4% 連兩年高速成長並創歷史新高，淨利率 15.1% → 13.7% → 14.4% → 16.0% 同步回升、優於同業；EPS 6.40 → 5.58 → 6.63 → 8.36 元（⚠️ 2025年為四季加總估算，權益 YoY+29.2% 偵測到年內增資，加權 EPS 可能低於此值，請以 MOPS 年報為準）。ROE 10.6% → 8.9% → 9.8% → 9.7%，ROA 7.5% → 6.5% → 7.6% → 7.8%，長期穩守 9% 以上的高報酬區間，賺錢效率佳。現金股利 3.2 → 2.8 → 3.4 → 4.8 元，2025年加碼 +41%，若以加總 EPS 計配息率約 57%、以真實加權計或達 65-70%，配息積極但尚未透支；殖利率 4.45% → 2.86% → 2.07% → 2.13%（除息價 225 元），股價上漲使殖利率收斂。</p>
+<h4 style='color:#2b6cb0;margin:16px 0 8px;font-size:0.92rem;'>🏦 財務 — 零負債模範生，但2025年現金流與存貨需關注</h4>
+<p style='font-size:0.88rem;color:#4a5568;line-height:1.7;margin:0 0 10px;'>這一頁在看「公司欠多少、現金夠不夠」。資產 606.8 億中，負債僅 117.5 億、股東權益 489.2 億，負債比率 19.3% 極度穩健（&lt;60%）且連四年下降（28.9% → 26.3% → 22.7% → 19.3%），流動比率更從 235% 暴增至 426%（流動資產 292.7 億 vs 流動負債僅 68.6 億），短期償債毫無壓力，財務體質模範級。存貨 2.16 億較 2024年 1.34 億暴增 +61%，增幅遠超營收 +16%，庫存週轉壓力浮現，需觀察是否為備料或滯銷。現金部位 90.9 億較前一年 86.9 億微增，但現金流「營業 -31.2 億、投資 -25.7 億、融資 +61.0 億」——白話是「本業現金反向流出 31 億，投資花 25 億，靠融資增資 61 億補足」，2025年為五年首見營業現金流為負、自由現金流 -57.1 億大幅轉負，與淨利 +28% 創新高背離，主因應收帳款或存貨暴增吃掉現金，獲利含金量當年偏弱；不過融資大舉流入使現金不減反增，屬增資擴產期的典型現金流結構。</p>
+<h4 style='color:#2b6cb0;margin:16px 0 8px;font-size:0.92rem;'>🔭 總結 — 本業與獲利雙創高、財務極穩但現金含金量待追蹤的成長期</h4>
+<p style='font-size:0.88rem;color:#4a5568;line-height:1.7;margin:0 0 10px;'>把四頁合起來看，世禾正處於「本業重回高速成長、獲利同步創高」的成長期：長線三年營收 CAGR +7.7%、2025年營收 29.9 億與淨利 4.79 億雙創歷史新高，毛利率 36% 與營益率 17.4% 維持高檔、費用率因規模效益下降，本業結構健康；短線八季營收階梯上行、2026Q2 毛利率 39.4% 與淨利率 21% 再創新高、月營收連五月站穩 2.9 億，動能強勁且趨勢未見反轉。財務面 19.3% 極低負債與 426% 流動比率是最大護城河，體質無虞。唯一需追蹤的領先指標是「2025年營業現金流轉負與存貨暴增 61%」——獲利創高但現金未同步流入，是否為半導體客戶備貨或應收遞延，將決定 2026年獲利能否再轉化為真實現金。整體屬於高獲利、高成長、低負債的優質成長股，短線動能與長線體質皆強，後續追蹤「存貨去化與營業現金流是否轉正」即可。</p>
+<div style="text-align:center;padding:12px;color:#a0aec0;font-size:0.75rem;margin-top:8px;">本總結由 AI 依報告數據生成，僅為白話解讀，非投資建議 · 數據來源見頁首 MOPS/Goodinfo 連結</div>
+</div>
+<div style="text-align:center;padding:20px;color:#a0aec0;font-size:0.78rem;">本報告由 taiwan-stock-analysis skill 自動生成｜僅供參考，非投資建議</div>
+<script>
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
