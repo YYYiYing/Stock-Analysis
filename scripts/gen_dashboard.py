@@ -870,7 +870,8 @@ def generate(sid):
             except:
                 return ("neutral","■ 持平")
         # 最新一季置頂（與年報精神一致：最新在前便於對比近期動能）
-        rows_html="".join(f"<tr><td>{x.get('label')}</td><td>{(x.get('revenue',0)/1e8 if abs(x.get('revenue',0))>1e6 else x.get('revenue') or 0):.2f}</td><td>{(x.get('gross_margin') or 0):.1f}%</td><td>{(x.get('net_income',0)/1e8 if abs(x.get('net_income',0))>1e6 else x.get('net_income') or 0):.2f}</td><td>{(x.get('net_margin') or 0):.1f}%</td><td>{x.get('eps')}</td><td class=\"{q_trend(len(j["quarterly"])-1-idx)[0]}\">{q_trend(len(j["quarterly"])-1-idx)[1]}</td></tr>" for idx, x in enumerate(reversed(j["quarterly"])))
+        n_q=len(j["quarterly"])  # 3.11 相容：f-string 內不嵌套同引號，Win/Mac 通用
+        rows_html="".join(f"<tr><td>{x.get('label')}</td><td>{(x.get('revenue',0)/1e8 if abs(x.get('revenue',0))>1e6 else x.get('revenue') or 0):.2f}</td><td>{(x.get('gross_margin') or 0):.1f}%</td><td>{(x.get('net_income',0)/1e8 if abs(x.get('net_income',0))>1e6 else x.get('net_income') or 0):.2f}</td><td>{(x.get('net_margin') or 0):.1f}%</td><td>{x.get('eps')}</td><td class=\"{q_trend(n_q-1-idx)[0]}\">{q_trend(n_q-1-idx)[1]}</td></tr>" for idx, x in enumerate(reversed(j["quarterly"])))
         momentum_content=f'<div id="momentum" class="tab-content"><div class="insight-box"><h3>季月動能亮點</h3>{momentum_insight}</div><div class="charts-grid">{momentum_charts}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>季度</th><th>營收(億)</th><th>毛利率</th><th>淨利(億)</th><th>淨利率</th><th>EPS</th><th>趨勢評估</th></tr></thead><tbody>'+rows_html+'</tbody></table></div></div>'
     else:
         # P3：無季月資料亦不隱藏，顯示至上一季狀態（空狀態）

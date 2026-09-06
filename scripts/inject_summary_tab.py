@@ -142,7 +142,13 @@ def inject_one(html_path: Path, summary_text: str):
 
     # --- 2. 處理 tab 內容 ---
     # 移除舊的 summary tab-content（含 active 變體）
-    html = re.sub(r'<div id="summary" class="tab-content[^"]*">.*?</div>\s*(?=<div style="text-align:center)', '', html, flags=re.DOTALL)
+    # 2026-09-06 修正：錨定其後的 momentum 區塊。舊 regex 以頁尾 text-align div 為錨，
+    # 新版 gen 的 placeholder 內無該 div，會一路吃掉後方 4 頁（3551/8021 案例）。
+    # momentum 錨對「舊白話」與「新占位符」兩種皆安全（summary 恆在 momentum 之前）。
+    html = re.sub(r'<div id="summary" class="tab-content[^"]*">.*?(?=<div id="momentum")', '', html, flags=re.DOTALL)
+    if '<div id="summary"' in html:
+        # fallback：無 momentum 錨點的舊版面才用舊邏輯
+        html = re.sub(r'<div id="summary" class="tab-content[^"]*">.*?</div>\s*(?=<div style="text-align:center)', '', html, flags=re.DOTALL)
     if '<div id="summary"' in html:
         html = re.sub(r'<div id="summary" class="tab-content[^"]*">.*?</div>\s*(?=<script>)', '', html, flags=re.DOTALL)
         if '<div id="summary"' in html:
