@@ -25,6 +25,7 @@ INDUSTRY = {
     "2484": "電子零組件（石英元件）",
     "8069": "光電業",
     "4721": "化學（特用化學）",
+    "6515": "半導體（測試介面）",
     "6782": "生技醫療（隱形眼鏡）",
     "3231": "電腦及週邊（AI 伺服器 ODM）",
     "5386": "電子零組件（顯示卡通路）",
@@ -275,6 +276,8 @@ def generate(sid):
     # 誠實告知：新聞未交叉時顯示中性標
     if ver.get("sanity_pass", True) and not has_verify and news_status=="skipped":
         sanity_badge='<span class="verify-badge" style="background:#ebf8ff;color:#2b6cb0;">✅ 合理性檢查通過｜未經新聞交叉（僅 FinMind/MOPS）</span>'
+    elif ver.get("sanity_pass", True) and not has_verify and news_status=="checked":
+        sanity_badge='<span class="verify-badge">✅ 合理性檢查通過｜經FinMind及新聞交叉比對無誤</span>'
     elif ver.get("sanity_pass", True) and not has_verify:
         sanity_badge='<span class="verify-badge">✅ 合理性檢查通過</span>'
     else:
